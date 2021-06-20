@@ -35,6 +35,11 @@ class Player:
         
         self.params["crit"]           = int(layers[("4"+dna[8:10])]["value"])
 
+        self.params["combos"] = []
+
+        for combo in combos:
+            if combo["type"] == self.params["combo_group"]:
+                self.params["combos"].append(combo)
 
     def character(self):
         return(self.params)
