@@ -73,13 +73,21 @@ def load_combos(sheet):
     return(combos)
 
 
-
 workbook = load_workbook(filename=rules_filename)
 layers = load_layers(workbook["layers"])
 
-print(len(layers))
-
+print("processed layers:",len(layers))
 
 combos = load_combos(workbook["combos"])
-print(combos)
+print("processed combos:",len(combos))
 
+
+print("todo: select players")
+# load players
+# select two
+
+
+print("todo: build profiles")
+print("todo: generate deck")
+print("todo: inititiate battlefield")
+print("todo: play battle")
