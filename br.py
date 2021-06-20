@@ -2,12 +2,44 @@ from openpyxl import load_workbook
 from itertools import islice
 from collections import OrderedDict
 import json
-
+import random
 
 rules_filename = "deckfight.xlsx"
+cards_filename = "cards.json"
 
 # open xls
 # load cards
+
+##########################################
+class Player:
+
+    def __init__(self, card_data, layers, combos):
+        self.params = {
+            "combo_group"    : 0,
+            "character_type" : 0,
+            "crit"           : 0
+        }
+        
+        self.data = card_data
+        dna = (card_data["layer_image"].split("/")[-1]).split(".")[0] 
+        self.params["dna"] = dna
+        self.params["card_id"] = card_data["id"]
+
+        self.params["health"]         = int(layers[("0"+dna[0:2])]["value"])
+        
+        self.params["deck_limit"]     = int(layers[("1"+dna[2:4])]["value"])
+        
+        self.params["combo_group"]    = int(layers[("2"+dna[4:6])]["value"])
+        
+        self.params["character_type"] = int(layers[("3"+dna[6:8])]["value"])
+        
+        self.params["crit"]           = int(layers[("4"+dna[8:10])]["value"])
+
+
+    def character(self):
+        return(self.params)
+
+
 
 ##########################################
 
@@ -49,7 +81,17 @@ def load_layers(sheet):
             "Type" : "str",
             "value": "str"
             }
-    layers = fetch_values(sheet,columns)
+    ls = fetch_values(sheet,columns)
+    layers = {}
+    for layer in ls:
+        k = str(int(layer["seq"]))
+        c = layer["code"]
+        if isinstance(c,int):
+            c = int(c)
+        c = str(c)
+        k = k + c
+        layers[k] = layer
+
     return(layers)
 
 
@@ -73,13 +115,37 @@ def load_combos(sheet):
     return(combos)
 
 
-
 workbook = load_workbook(filename=rules_filename)
 layers = load_layers(workbook["layers"])
 
-print(len(layers))
-
+print("processed layers:",len(layers))
+print("--------------")
+print(layers)
+print("--------------")
 
 combos = load_combos(workbook["combos"])
-print(combos)
+print("processed combos:",len(combos))
 
+
+print("todo: select players")
+# load cards
+with open(cards_filename) as json_file:                                                                                                                                                                                                                                                     
+    cards = json.load(json_file)
+
+# select two
+card1 = random.choice(cards)
+card2 = random.choice(cards)
+player1 = Player(card1,layers,combos)
+player2 = Player(card2,layers,combos)
+print("player1:",player1.character())
+print("--------------")
+print("player2:",player2.character())
+#print("--------------")
+#print("card1:",card1)
+#print("--------------")
+#print("card2:",card2)
+
+#print("todo: build profiles")
+#print("todo: generate deck")
+#print("todo: inititiate battlefield")
+#print("todo: play battle")
