@@ -149,10 +149,8 @@ def load_combos(sheet):
         if c["crit_action"] is not None:
             combo["crit"] = {
                     "action": c["crit_action"],
-                    "amount": int(c["crit_amount"]),
+                    "amount": int(c["crit_amt"]),
                     }
-            if c["crit_extra"] is not None:
-                combo["crit"]["extra"] = int(c["crit_extra"])
         
         combos.append(combo)
     return(combos)
