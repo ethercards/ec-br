@@ -35,6 +35,11 @@ class Player:
         
         self.params["crit"]           = int(layers[("4"+dna[8:10])]["value"])
 
+        self.params["combos"] = []
+
+        for combo in combos:
+            if combo["type"] == self.params["combo_group"]:
+                self.params["combos"].append(combo)
 
     def character(self):
         return(self.params)
@@ -111,7 +116,48 @@ def load_combos(sheet):
             "crit_action"   :   "str",
             "crit_amt"      :   "str"
             }
-    combos = fetch_values(sheet,columns)
+    cs = fetch_values(sheet,columns)
+    combos = []
+    for c in cs:
+        combo = {}
+        combo["type"] = int(c["type"])
+
+        # attack
+        if c["attack_action"] is not None:
+            combo["attack"] = {
+                    "action": c["attack_action"],
+                    "amount": int(c["attack_amount"]),
+                    }
+            if c["attack_extra"] is not None:
+                combo["attack"]["extra"] = int(c["attack_extra"])
+
+        # shield
+        if c["shield_action"] is not None:
+            combo["shield"] = {
+                    "action": c["shield_action"],
+                    "amount": int(c["shield_amount"]),
+                    }
+            if c["shield_extra"] is not None:
+                combo["shield"]["extra"] = int(c["shield_extra"])
+
+        # life
+        if c["life_action"] is not None:
+            combo["life"] = {
+                    "action": c["life_action"],
+                    "amount": int(c["life_amount"]),
+                    }
+            if c["life_extra"] is not None:
+                combo["life"]["extra"] = int(c["life_extra"])
+
+        # crit
+        print(c)
+        if c["crit_action"] is not None:
+            combo["crit"] = {
+                    "action": c["crit_action"],
+                    "amount": int(c["crit_amt"]),
+                    }
+        
+        combos.append(combo)
     return(combos)
 
 
@@ -119,12 +165,12 @@ workbook = load_workbook(filename=rules_filename)
 layers = load_layers(workbook["layers"])
 
 print("processed layers:",len(layers))
-print("--------------")
-print(layers)
-print("--------------")
 
 combos = load_combos(workbook["combos"])
 print("processed combos:",len(combos))
+print("--------------")
+print(combos)
+print("--------------")
 
 
 print("todo: select players")
