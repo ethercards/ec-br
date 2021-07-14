@@ -732,7 +732,17 @@ def evaluate_attack_phase(battling_player1, battling_player1_card_to_play, battl
     # evaluate attack for player2
     if battling_player2_card_to_play is not None:
         if battling_player2_card_to_play["combo_sign"] == "A":
-            evaluate_attack_card(battling_player1, battling_player2_card_to_play, battling_player2.player_crit_chance)
+            attack_boosts = []
+            if len(battling_player2.active_boosts) > 0:
+                for boost in battling_player2.active_boosts:
+                    if boost.attack_boost is not None:
+                        attack_boosts.append(boost.attack_boost)
+            if len(attack_boosts) > 0:
+                evaluate_attack_card(battling_player2, battling_player1, battling_player2_card_to_play,
+                                     battling_player2.player_crit_chance, attack_boosts)
+            else:
+                evaluate_attack_card(battling_player2, battling_player1, battling_player2_card_to_play,
+                                     battling_player2.player_crit_chance)
 
     return battling_player1, battling_player2
 
@@ -755,7 +765,7 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
         final_damage = random.choice(damage_array)
     # evaluating attack boost
     if len(active_boosts) > 0:
-        final_damage, attacking_player = evaluate_attack_boost(final_damage, attacking_player, active_boost)
+        final_damage, attacking_player = evaluate_attack_boost(final_damage, attacking_player, active_boosts)
 
     # taking player shield into consideration
     if defending_player.player_shield > 0:
@@ -782,16 +792,16 @@ def evaluate_attack_boost(final_damage, attacking_player, active_boosts):
     # evaluate flat bonus damage
     for attack_boost in active_boosts:
         if attack_boost.action_type == "+":
-            final_value += attack_boost.amount
+            final_damage += attack_boost.amount
             attacking_player = remove_boost(attacking_player, attack_boost.unique_id)
-            print("Attack boosted by +", attack_boost.amount, " new attack_final_value is: ", final_value)
+            print("Attack boosted by +", attack_boost.amount, " new attack_final_value is: ", final_damage)
 
     # evaluate multiplayer bonus damage
     for attack_boost in active_boosts:
         if attack_boost.action_type == "+":
-            final_value += attack_boost.amount
+            final_damage += attack_boost.amount
             attacking_player = remove_boost(attacking_player, attack_boost.unique_id)
-            print("Attack boosted by +", attack_boost.amount, " new attack_final_value is: ", final_value)
+            print("Attack boosted by +", attack_boost.amount, " new attack_final_value is: ", final_damage)
 
     return final_damage, attacking_player
 
