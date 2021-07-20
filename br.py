@@ -161,17 +161,17 @@ class CardValueReducerDebuff:
         if "card_count" in neutralizer_card:
             self.card_count = int(neutralizer_card["card_count"])
         if "attack" in neutralizer_card:
-            self.attack_action=neutralizer_card["attack"]["action"]
-            self.attack_amount=neutralizer_card["attack"]["amount"]
+            self.action=neutralizer_card["attack"]["action"]
+            self.amount=neutralizer_card["attack"]["amount"]
         if "life" in neutralizer_card:
-            self.life_action = neutralizer_card["life"]["action"]
-            self.life_amount = neutralizer_card["life"]["amount"]
+            self.action = neutralizer_card["life"]["action"]
+            self.amount = neutralizer_card["life"]["amount"]
         if "shield" in neutralizer_card:
-            self.shield_action = neutralizer_card["shield"]["action"]
-            self.shield_amount = neutralizer_card["shield"]["amount"]
+            self.action = neutralizer_card["shield"]["action"]
+            self.amount = neutralizer_card["shield"]["amount"]
         if "crit" in neutralizer_card:
-            self.crit_action = neutralizer_card["crit"]["action"]
-            self.crit_amount = neutralizer_card["crit"]["amount"]
+            self.action = neutralizer_card["crit"]["action"]
+            self.amount = neutralizer_card["crit"]["amount"]
 
     def reduce_card_timer(self):
         self.card_timing -= 1
@@ -264,20 +264,20 @@ class ComboBoost:
         self.card_count = int(boost_card["card_count"])
 
         if "attack" in boost_card:
-            self.attack_action_type = boost_card["attack"]["action"]
-            self.attack_amount = int(boost_card["attack"]["amount"])
+            self.action_type = boost_card["attack"]["action"]
+            self.amount = int(boost_card["attack"]["amount"])
 
         if "crit" in boost_card:
-            self.crit_action_type = boost_card["crit"]["action"]
-            self.crit_amount = int(boost_card["crit"]["amount"])
+            self.action_type = boost_card["crit"]["action"]
+            self.amount = int(boost_card["crit"]["amount"])
 
         if "shield" in boost_card:
-            self.shield_action_type = boost_card["shield"]["action"]
-            self.shield_amount = int(boost_card["shield"]["amount"])
+            self.action_type = boost_card["shield"]["action"]
+            self.amount = int(boost_card["shield"]["amount"])
 
         if "life" in boost_card:
-            self.life_action_type = boost_card["life"]["action"]
-            self.life_amount = int(boost_card["life"]["amount"])
+            self.action_type = boost_card["life"]["action"]
+            self.amount = int(boost_card["life"]["amount"])
 
 class AttackBoost:
     def __init__(self, boost_card, id):
@@ -727,19 +727,18 @@ def apply_neutralizer_debuffs(defending_player,defending_card_to_play):
                     if debuff.special_debuff is not None and debuff.card_count>0:
                         special_description=debuff.special_debuff.special_description
                         if special_description == "swap":
-                            defending_player=apply_deck_manipulator_debuff(defending_player,special_description)
+                            apply_deck_manipulator_debuff(defending_player,special_description)
                         if special_description == "to the bottom":
-                            defending_player=apply_deck_manipulator_debuff(defending_player,special_description)
+                            apply_deck_manipulator_debuff(defending_player,special_description)
                         if special_description == "combo sign cancel":
-                            defending_player= apply_combo_sign_cancel(defending_player)
+                            apply_combo_sign_cancel(defending_player)
                     if debuff.card_value_reducer_debuff is not None and debuff.card_count>0:
-                        defending_card_to_play=apply_card_reducer_debuff(defending_player,debuff.card_value_reducer_debuff,defending_card_to_play)
+                        apply_card_reducer_debuff(defending_player,debuff.card_value_reducer_debuff,defending_card_to_play)
                     remove_debuff_counter(defending_player,debuff.uuid)
     return defending_player,defending_card_to_play
 
 
 def remove_debuff_counter(defending_player,debuff_uuid):
-    # Todo im here
     debuff_to_remove_index = None
     for index in range(len(defending_player.debuffs)):
         if defending_player.debuffs[index].uuid == debuff_uuid:
@@ -759,148 +758,88 @@ def remove_debuff_counter(defending_player,debuff_uuid):
 
 
 def apply_card_reducer_debuff(defending_player, card_value_reducer_debuff, card_played):
-    # todo make this prettier
     ineffective_debuff = True
     if card_played["combo_sign"] != "N":
         if card_played["combo_sign"] == "B":
             if "attack" in card_played:
-                min_value = card_played["attack"]["amount"]
-                action_type=card_played["attack"]["action"]
-                if card_value_reducer_debuff.attack_action == "=":
-                    card_played["attack"]["amount"] = card_value_reducer_debuff.attack_amount
-                if card_value_reducer_debuff.attack_action == "-":
-                    card_played["attack"]["amount"] -= card_value_reducer_debuff.attack_amount
-                if card_played["attack"]["amount"] < 1:
-                    card_played["attack"]["amount"] = 1
-                new_value=card_played["attack"]["amount"]
-                print(defending_player.player_dna, "card reducer debuff applied on attack boost card, from", action_type, min_value,
-                      "to", new_value)
-                ineffective_debuff = False
+               ineffective_debuff=apply_card_reducer_debuff_on_boost_card_with_parameter(defending_player,card_value_reducer_debuff,card_played,"attack")
             if "shield" in card_played:
-                min_value = card_played["shield"]["amount"]
-                action_type = card_played["shield"]["action"]
-                if card_value_reducer_debuff.shield_action == "=":
-                    card_played["shield"]["amount"] = card_value_reducer_debuff.shield_amount
-                if card_value_reducer_debuff.shield_action == "-":
-                    card_played["shield"]["amount"] -= card_value_reducer_debuff.shield_amount
-                if card_played["shield"]["amount"] < 1:
-                    card_played["shield"]["amount"] = 1
-                new_value = card_played["shield"]["amount"]
-                print(defending_player.player_dna, "card reducer debuff applied on shield boost card, from", action_type, min_value,
-                      "to", new_value)
-                ineffective_debuff = False
+                ineffective_debuff=apply_card_reducer_debuff_on_boost_card_with_parameter(defending_player,card_value_reducer_debuff,card_played,"shield")
             if "life" in card_played:
-                min_value = card_played["life"]["amount"]
-                action_type = card_played["life"]["action"]
-                if card_value_reducer_debuff.life_action == "=":
-                    card_played["life"]["amount"] = card_value_reducer_debuff.life_amount
-                if card_value_reducer_debuff.life_action == "-":
-                    card_played["life"]["amount"] -= card_value_reducer_debuff.life_amount
-                if card_played["life"]["amount"] < 1:
-                    card_played["life"]["amount"] = 1
-                new_value = card_played["life"]["amount"]
-                print(defending_player.player_dna, "card reducer debuff applied on life boost card, from", action_type, min_value,
-                      "to", new_value)
-                ineffective_debuff = False
-
+                ineffective_debuff=apply_card_reducer_debuff_on_boost_card_with_parameter(defending_player,card_value_reducer_debuff,card_played,"life")
             if "crit" in card_played:
-                min_value = card_played["crit"]["amount"]
-                action_type = card_played["crit"]["action"]
-                if card_value_reducer_debuff.crit_action == "=":
-                    card_played["crit"]["amount"] = card_value_reducer_debuff.crit_amount
-                if card_value_reducer_debuff.crit_action == "-":
-                    card_played["crit"]["amount"] -= card_value_reducer_debuff.crit_amount
-                if card_played["crit"]["action"] == "x":
-                    if card_played["crit"]["amount"] < 1:
-                        card_played["crit"]["amount"] = 1
-                else:
-                    if card_played["crit"]["amount"] < 0:
-                        card_played["crit"]["amount"] = 0
-                new_value = card_played["crit"]["amount"]
-                print(defending_player.player_dna, "card reducer debuff applied on crit boost card, from", action_type, min_value,
-                      "to", new_value)
-                ineffective_debuff = False
-
+                ineffective_debuff = apply_card_reducer_debuff_on_boost_card_with_parameter(defending_player,
+                                                                                            card_value_reducer_debuff,
+                                                                                            card_played, "crit")
         else:
             if "attack" in card_played:
-                min_value=card_played["attack"]["amount"]
-                max_value=card_played["attack"]["extra"]
-                action_type = card_played["attack"]["action"]
-                if card_value_reducer_debuff.attack_action == "=":
-                    card_played["attack"]["amount"] = card_value_reducer_debuff.attack_amount
-                    card_played["attack"]["extra"]=card_value_reducer_debuff.attack_amount
-                if card_value_reducer_debuff.attack_action == "-":
-                    card_played["attack"]["amount"] -= card_value_reducer_debuff.attack_amount
-                    card_played["attack"]["extra"] -= card_value_reducer_debuff.attack_amount
-                    if card_played["attack"]["amount"] < 0:
-                        card_played["attack"]["amount"] = 0
-                    if card_played["attack"]["extra"] <0:
-                        card_played["attack"]["extra"]=0
-                print(defending_player.player_dna, "card reducer debuff applied on attack card, from",action_type, min_value, "-", max_value,
-                      "to", card_played["attack"]["amount"], "-", card_played["attack"]["extra"])
-                ineffective_debuff=False
+                ineffective_debuff=apply_card_reducer_debuff_on_non_boost_card_with_parameter(defending_player,card_value_reducer_debuff,card_played,"attack")
             if "shield" in card_played:
-                min_value = card_played["shield"]["amount"]
-                max_value = card_played["shield"]["extra"]
-                action_type = card_played["shield"]["action"]
-                if card_value_reducer_debuff.shield_action == "=":
-                    card_played["shield"]["amount"] = card_value_reducer_debuff.shield_amount
-                    card_played["shield"]["extra"] = card_value_reducer_debuff.shield_amount
-                if card_value_reducer_debuff.shield_action == "-":
-                    card_played["shield"]["amount"] -= card_value_reducer_debuff.shield_amount
-                    card_played["shield"]["extra"] -= card_value_reducer_debuff.shield_amount
-                    if card_played["shield"]["amount"] < 0:
-                        card_played["shield"]["amount"] = 0
-                    if card_played["shield"]["extra"] < 0:
-                        card_played["shield"]["extra"] = 0
-                print(defending_player.player_dna, "card reducer debuff applied on shield card, from",action_type, min_value, "-", max_value,
-                      "to", card_played["shield"]["amount"], "-", card_played["shield"]["extra"])
-                ineffective_debuff=False
-
+                ineffective_debuff=apply_card_reducer_debuff_on_non_boost_card_with_parameter(defending_player,card_value_reducer_debuff,card_played,"shield")
             if "life" in card_played:
-                min_value = card_played["life"]["amount"]
-                max_value = card_played["life"]["extra"]
-                action_type = card_played["life"]["action"]
-                if card_value_reducer_debuff.life_action == "=":
-                    card_played["life"]["amount"] = card_value_reducer_debuff.life_amount
-                    card_played["life"]["extra"] = card_value_reducer_debuff.life_amount
-                if card_value_reducer_debuff.life_action == "-":
-                    card_played["life"]["amount"] -= card_value_reducer_debuff.life_amount
-                    card_played["life"]["extra"] -= card_value_reducer_debuff.life_amount
-                    if card_played["life"]["amount"] < 0:
-                        card_played["life"]["amount"] = 0
-                    if card_played["life"]["extra"] < 0:
-                        card_played["life"]["extra"] = 0
-                print(defending_player.player_dna, "card reducer debuff applied on life card, from",action_type, min_value, "-", max_value,
-                      "to", card_played["life"]["amount"], "-", card_played["life"]["extra"])
-                ineffective_debuff=False
-
+                ineffective_debuff = apply_card_reducer_debuff_on_non_boost_card_with_parameter(defending_player,card_value_reducer_debuff,card_played, "life")
             if "crit" in card_played:
-                min_value = card_played["crit"]["amount"]
-                action_type = card_played["crit"]["action"]
-                if card_value_reducer_debuff.crit_action == "=":
-                    card_played["crit"]["amount"] = card_value_reducer_debuff.crit_amount
-                if card_value_reducer_debuff.crit_action == "-":
-                    card_played["crit"]["amount"] -= card_value_reducer_debuff.crit_amount
-                    if card_played["crit"]["amount"] < 0:
-                        card_played["crit"]["amount"] = 0
-                print(defending_player.player_dna, "card reducer debuff applied on crit card, from",action_type, min_value,
-                      "to", card_played["life"]["amount"])
-                ineffective_debuff=False
+                ineffective_debuff=apply_card_reducer_debuff_on_non_boost_card_with_parameter(defending_player,card_value_reducer_debuff,card_played,"crit")
 
     if ineffective_debuff:
-        print("Debuff was useless on", defending_player.player_dna)
+        print("Useless card reducer debuff applied on", defending_player.player_dna)
     else:
-        print("Effective debuff on", defending_player.player_dna)
-    return card_played
+        print("Effective card reducer debuff applied on on", defending_player.player_dna)
+
+def apply_card_reducer_debuff_on_boost_card_with_parameter(defending_player,card_value_reducer_debuff,card_played,parameter):
+    min_value = card_played[parameter]["amount"]
+    action_type = card_played[parameter]["action"]
+    if card_value_reducer_debuff.action == "=":
+        card_played[parameter]["amount"] = card_value_reducer_debuff.amount
+    if card_value_reducer_debuff.action == "-":
+        card_played[parameter]["amount"] -= card_value_reducer_debuff.amount
+    if card_played[parameter]["action"] == "x":
+        if card_played[parameter]["amount"] < 1:
+            card_played[parameter]["amount"] = 1
+    elif card_played[parameter]["action"] == "+":
+        if card_played[parameter]["amount"] < 0:
+            card_played[parameter]["amount"] = 0
+    new_value = card_played[parameter]["amount"]
+    print(defending_player.player_dna, "card reducer debuff applied on",parameter," boost card, from", action_type, min_value,
+          "to", new_value)
+    return False
+
+
+def apply_card_reducer_debuff_on_non_boost_card_with_parameter(defending_player,card_value_reducer_debuff,card_played,parameter):
+    min_value = card_played[parameter]["amount"]
+    if parameter != "crit":
+        max_value = card_played[parameter]["extra"]
+    action_type = card_played[parameter]["action"]
+    if card_value_reducer_debuff.action == "=":
+        card_played[parameter]["amount"] = card_value_reducer_debuff.amount
+        if parameter != "crit":
+            card_played[parameter]["extra"] = card_value_reducer_debuff.amount
+    if card_value_reducer_debuff.action == "-":
+        card_played[parameter]["amount"] -= card_value_reducer_debuff.amount
+        if parameter != "crit":
+            card_played[parameter]["extra"] -= card_value_reducer_debuff.amount
+        if card_played[parameter]["amount"] < 0:
+            card_played[parameter]["amount"] = 0
+        if card_played[parameter]["extra"] < 0:
+            if parameter != "crit":
+                card_played[parameter]["extra"] = 0
+    if parameter != "crit":
+        print(defending_player.player_dna, "card reducer debuff applied on",parameter,"card, from", action_type, min_value, "-",
+              max_value,
+              "to", card_played[parameter]["amount"], "-", card_played[parameter]["extra"])
+    else:
+        print(defending_player.player_dna, "card reducer debuff applied on", parameter, "card, from", action_type,
+              min_value,"to", card_played[parameter]["amount"])
+
+    return False
 
 
 def apply_combo_sign_cancel(defending_player):
     previous_combo_string=defending_player.player_combo_string
-    defending_player.player_combo_string= defending_player.player_combo_string[:-1]
-    print(defending_player.player_dna,"last combo sign removed")
+    #defending_player.player_combo_string= defending_player.player_combo_string[:-1]
+    defending_player.player_combo_string=""
     print(defending_player.player_dna,"Combo string changed from:",previous_combo_string,"to",defending_player.player_combo_string)
-    return defending_player
+
 
 
 def apply_deck_manipulator_debuff(defending_player,debuff_description):
@@ -916,7 +855,7 @@ def apply_deck_manipulator_debuff(defending_player,debuff_description):
             defending_player.player_deck.pop(0)
             defending_player.player_deck.append(first_card)
             print (defending_player.player_dna,"first card sent to bottom")
-    return defending_player
+
 
 
 def evaluate_boost_phase(battling_player1, battling_player1_card_to_play,
@@ -924,24 +863,23 @@ def evaluate_boost_phase(battling_player1, battling_player1_card_to_play,
     print("----------------------------")
     print("Boost phase started")
     print("----------------------------")
-    # todo remove duplicate code
-    if battling_player1_card_to_play is not None:
-        if battling_player1_card_to_play["combo_sign"] == "B":
-            boost = Boost(battling_player1_card_to_play)
-            battling_player1.active_boosts.append(boost)
-            print(battling_player2.player_dna,"added the following boost",boost.boost_card)
+    evaluate_boost_phase_for_player(battling_player1,battling_player1_card_to_play)
 
-    if battling_player2_card_to_play is not None:
-        if battling_player2_card_to_play["combo_sign"] == "B":
-            boost = Boost(battling_player2_card_to_play)
-            battling_player2.active_boosts.append(boost)
-            print(battling_player1.player_dna,"added the following boost",boost.boost_card)
+    evaluate_boost_phase_for_player(battling_player2,battling_player2_card_to_play)
 
     print("----------------------------")
     print("Boost phase ended")
     print("----------------------------")
 
     return battling_player1, battling_player2
+
+
+def evaluate_boost_phase_for_player(battling_player,battling_player_card_to_play):
+    if battling_player_card_to_play is not None:
+        if battling_player_card_to_play["combo_sign"] == "B":
+            boost = Boost(battling_player_card_to_play)
+            battling_player.active_boosts.append(boost)
+            print(battling_player.player_dna,"added the following boost",boost.boost_card)
 
 
 def remove_boost_counter(active_player, boost_id):
@@ -1018,7 +956,6 @@ def evaluate_combo_level_n(n, battling_player):
                     battling_player.active_boosts.append(boost)
                 else:
                     if combo["target_type"] == "player":
-                        # TODO ask about this part, the timing might need to be set to 0
                         combo["card_timing"] = 0
                         combo["card_count"] = 1
                         if len(check_for_combo_boosts(battling_player))>0:
@@ -1035,41 +972,37 @@ def boost_combo(combo,battling_player):
     combo_boosts=check_for_combo_boosts(battling_player)
     first_boost=combo_boosts[0]
 
-    # todo reduce these to keyworkds and allt he similar places
+    # TODO whyam I only boostinbg here with first boost??? I might need to think about this one or ask for the reason
 
     if "shield" in combo:
-        min_shield_amount = combo["shield"]["amount"]
-        max_shield_amount = combo["shield"]["extra"]
-        combo["shield"]["amount"] *= first_boost.combo_boost.shield_amount
-        combo["shield"]["extra"] *= first_boost.combo_boost.shield_amount
-        print(battling_player.player_dna,"shield effect getting boosted by:",first_boost.combo_boost.shield_amount)
-        print(battling_player.player_dna,"original shield effect of", min_shield_amount,"-",max_shield_amount,
-              "boosted to:", combo["shield"]["amount"],"-",combo["shield"]["extra"])
+        combo=boost_combo_with_parameter(combo,first_boost,battling_player,"shield")
     if "attack" in combo:
-        min_attack_amount = combo["attack"]["amount"]
-        max_attack_amount = combo["attack"]["extra"]
-        combo["attack"]["amount"] *= first_boost.combo_boost.attack_amount
-        combo["attack"]["extra"] *= first_boost.combo_boost.attack_amount
-        print(battling_player.player_dna, "attack effect getting boosted by:", first_boost.combo_boost.attack_amount)
-        print(battling_player.player_dna, "original attack effect of", min_attack_amount, "-", max_attack_amount,
-              "boosted to:", combo["attack"]["amount"],"-", combo["attack"]["extra"])
+        combo = boost_combo_with_parameter(combo,first_boost, battling_player, "attack")
     if "life" in combo:
-        min_life_amount = combo["life"]["amount"]
-        max_life_amount = combo["life"]["extra"]
-        combo["life"]["amount"] *= first_boost.combo_boost.life_amount
-        combo["life"]["extra"] *= first_boost.combo_boost.life_amount
-        print(battling_player.player_dna, "life effect getting boosted by:", first_boost.combo_boost.life_amount)
-        print(battling_player.player_dna, "original life effect of", min_life_amount, "-", max_life_amount,
-              "boosted to:", combo["life"]["amount"],"-", combo["life"]["extra"])
+        combo = boost_combo_with_parameter(combo,first_boost, battling_player, "life")
     if "crit" in combo:
-        crit_amount = combo["crit"]["amount"]
-        combo["crit"]["amount"] *= first_boost.combo_boost.crit_amount
-        print(battling_player.player_dna, "shield getting boosted by:", first_boost.combo_boost.crit_amount)
-        print(battling_player.player_dna, "original crit effect of", crit_amount,
-              "boosted to:", combo["life"]["amount"])
+       combo=boost_combo_with_parameter(combo,first_boost, battling_player, "crit")
 
     battling_player = remove_boost_counter(battling_player, first_boost.unique_id)
     return combo, battling_player
+
+
+def boost_combo_with_parameter(combo,first_boost,battling_player,parameter):
+    # TODO this, decide if there is a need for return value
+    min_amount = combo[parameter]["amount"]
+    if parameter != "crit":
+        max_amount = combo[parameter]["extra"]
+    combo[parameter]["amount"] *= first_boost.combo_boost.amount
+    if parameter != "crit":
+        combo[parameter]["extra"] *= first_boost.combo_boost.amount
+    print(battling_player.player_dna,parameter,"effect getting boosted by:", first_boost.combo_boost.amount)
+    if parameter != "crit":
+        print(battling_player.player_dna, "original",parameter,"effect of", min_amount, "-", max_amount,
+              "boosted to:", combo[parameter]["amount"], "-", combo[parameter]["extra"])
+    else:
+        print(battling_player.player_dna, "original", parameter, "effect of", min_amount,"boosted to:", combo[parameter]["amount"])
+    return combo
+
 
 def evaluate_defense_phase(battling_player1, battling_player1_card_to_play, battling_player2,
                            battling_player2_card_to_play):
@@ -1447,7 +1380,8 @@ def determine_winner(battling_player1, battling_player2):
         elif battling_player1.player_shield < battling_player2.player_shield:
             return battling_player2
         else:
-            return "DRAW"
+            # todo placeholder for draw
+            return battling_player2
 
 
 workbook = load_workbook(filename=rules_filename)
@@ -1460,24 +1394,24 @@ combos = load_combos(workbook["combos"])
 with open(cards_filename, encoding='utf-8') as json_file:
     nft_cards = json.load(json_file)
 
+for index in range(100):
+    nft_card1 = random.choice(nft_cards)
+    nft_card2 = random.choice(nft_cards)
+    player1 = Player(nft_card1, layers, combos, playing_cards)
+    player2 = Player(nft_card2, layers, combos, playing_cards)
+    player1.generate_random_deck()
+    player2.generate_random_deck()
 
-nft_card1 = random.choice(nft_cards)
-nft_card2 = random.choice(nft_cards)
-player1 = Player(nft_card1, layers, combos, playing_cards)
-player2 = Player(nft_card2, layers, combos, playing_cards)
-player1.generate_random_deck()
-player2.generate_random_deck()
+    player1_score = 0
+    player2_score = 0
+    player1_dna = player1.params["dna"]
+    player2_dna = player2.params["dna"]
 
-player1_score = 0
-player2_score = 0
-player1_dna = player1.params["dna"]
-player2_dna = player2.params["dna"]
-
-for i in range(2):
-    round_winner=battle(player1, player2)
-    print("The winner is: ", round_winner.player_dna)
-    if round_winner.player_dna == player1_dna:
-        player1_score +=1
-    elif round_winner.player_dna == player2_dna:
-        player2_score += 1
-    print("The score is:",player1_score,"-",player2_score)
+    for i in range(1):
+        round_winner=battle(player1, player2)
+        print("The winner is: ", round_winner.player_dna)
+        if round_winner.player_dna == player1_dna:
+            player1_score +=1
+        elif round_winner.player_dna == player2_dna:
+            player2_score += 1
+        print("The score is:",player1_score,"-",player2_score)
