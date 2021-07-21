@@ -8,6 +8,7 @@ import copy
 
 rules_filename = "deckfight2.xlsx"
 cards_filename = "cards.json"
+players_info_filename="players.json"
 
 
 # open xls
@@ -55,7 +56,6 @@ class Player:
         self.params["deck"] = []
         self.params["deck_cost"] = 0
 
-
     def generate_random_deck(self):
         deck = []
         deck_cost = 0
@@ -68,10 +68,39 @@ class Player:
             deck.append(card)
         self.params["deck"] = deck
         self.params["deck_cost"] = deck_cost
+        print("Generated random deck for player:",self.params["card_id"],"deck size:",len(deck),"deck cost:",deck_cost)
         return deck
 
+    def validate_and_assign_deck(self,deck):
+        deck_cost=0
+        for card in deck:
+            if card["character_type"] != self.params["character_type"]:
+                self.params["deck"]=[]
+                print(self.params["card_id"])
+                print("Invalid card in deck. The card character_type of:",card["character_type"],
+                      "does not match player character_type of", self.params["character_type"])
+                return []
+            else:
+                deck_cost+=card["cost"]
+
+        if deck_cost > 200:
+            self.params["deck"] = []
+            print(self.params["card_id"])
+            print("invalid deck, deck total cost to high:", deck_cost, "... the maximum allowed is 200")
+            return []
+        if len(deck) > self.params["deck_limit"]:
+            self.params["deck"] = []
+            print(self.params["card_id"])
+            print("invalid deck, deck has more cards than allowed:", len(deck), "... the maximum allowed is",
+                  self.params["deck_limit"])
+            return []
+        print(self.params["card_id"])
+        print("Deck added to the player,deck cost:",deck_cost,"and deck size:",len(deck))
+        self.params["deck_cost"]=deck_cost
+        self.params["deck"]=deck
+
     def character(self):
-        return (self.params)
+        return self.params
 
 
 
@@ -82,6 +111,7 @@ class BattlingPlayerObject:
         self.player_combos = player.params["combos"]
         self.player_dna = player.params["dna"]
         self.player_max_health = player.params["health"]
+        self.id=player.params["card_id"]
 
         # initializing changing components for player1
         self.player_deck = player.params["deck"]
@@ -595,10 +625,10 @@ def battle(player1, player2):
 
 
 def print_overall_info(battling_player):
-    print("player1 dna:", battling_player.player_dna)
+    print("player dna:", battling_player.player_dna)
     print(battling_player.player_dna, "health:", battling_player.player_health, "shield:",
           battling_player.player_shield, "crit:", battling_player.player_crit_chance)
-    print(battling_player.player_dna, "deck size:", len(battling_player.player_deck), "active boost:",
+    print(battling_player.player_dna, "deck size:", len(battling_player.player_deck),"current combo string:",battling_player.player_combo_string, "active boost:",
           len(battling_player.active_boosts), "active debuffs:", len(battling_player.debuffs))
 
 def evaluate_round(battling_player1, battling_player2):
@@ -718,6 +748,7 @@ def evaluate_neutralizer_card(attacking_player,card_to_play, defending_player):
 
 
 def apply_neutralizer_debuffs(defending_player,defending_card_to_play):
+    # todo nezzuk ezt meg at Szilagyival
     if defending_card_to_play is not None :
         if len(defending_player.debuffs) > 0:
             for debuff in defending_player.debuffs:
@@ -906,27 +937,25 @@ def evaluate_combo_phase(battling_player1, battling_player2):
     print("Combo phase started")
     print("----------------------------")
 
-    print(battling_player1.player_dna,"combo string:",battling_player1.player_combo_string)
-    print(battling_player2.player_dna, "combo string:", battling_player2.player_combo_string)
     # check for level1 combo
-    battling_player1 = evaluate_combo_level_n(1, battling_player1)
-    battling_player2 = evaluate_combo_level_n(1, battling_player2)
+    battling_player1 = evaluate_combo_level_n(5, battling_player1)
+    battling_player2 = evaluate_combo_level_n(5, battling_player2)
     # -----------------------------------------------------------------------------------------
     # check for level2 combo
-    battling_player1 = evaluate_combo_level_n(2, battling_player1)
-    battling_player2 = evaluate_combo_level_n(2, battling_player2)
+    battling_player1 = evaluate_combo_level_n(4, battling_player1)
+    battling_player2 = evaluate_combo_level_n(4, battling_player2)
     # -----------------------------------------------------------------------------------------
     # check for level3 combo
     battling_player1 = evaluate_combo_level_n(3, battling_player1)
     battling_player2 = evaluate_combo_level_n(3, battling_player2)
     # -----------------------------------------------------------------------------------------
     # check for level4 combo
-    battling_player1 = evaluate_combo_level_n(4, battling_player1)
-    battling_player2 = evaluate_combo_level_n(4, battling_player2)
+    battling_player1 = evaluate_combo_level_n(2, battling_player1)
+    battling_player2 = evaluate_combo_level_n(2, battling_player2)
     # -----------------------------------------------------------------------------------------
     # check for level5 combo
-    battling_player1 = evaluate_combo_level_n(5, battling_player1)
-    battling_player2 = evaluate_combo_level_n(5, battling_player2)
+    battling_player1 = evaluate_combo_level_n(1, battling_player1)
+    battling_player2 = evaluate_combo_level_n(1, battling_player2)
 
     print("----------------------------")
     print("Combo phase ended")
@@ -945,6 +974,7 @@ def check_for_combo_boosts(battling_player):
 
 
 def evaluate_combo_level_n(n, battling_player):
+
     if len(battling_player.player_combo_string) > (n + 1):
         combo_string = battling_player.player_combo_string[len(battling_player.player_combo_string) - (n + 2):]
         for combo in battling_player.player_combos:
@@ -972,7 +1002,7 @@ def boost_combo(combo,battling_player):
     combo_boosts=check_for_combo_boosts(battling_player)
     first_boost=combo_boosts[0]
 
-    # TODO whyam I only boostinbg here with first boost??? I might need to think about this one or ask for the reason
+    # TODO someone told me each combo can only be boosted once, i dont remember who and why, so I might have to consult about this part and chane it
 
     if "shield" in combo:
         combo=boost_combo_with_parameter(combo,first_boost,battling_player,"shield")
@@ -988,7 +1018,6 @@ def boost_combo(combo,battling_player):
 
 
 def boost_combo_with_parameter(combo,first_boost,battling_player,parameter):
-    # TODO this, decide if there is a need for return value
     min_amount = combo[parameter]["amount"]
     if parameter != "crit":
         max_amount = combo[parameter]["extra"]
@@ -1053,7 +1082,7 @@ def apply_defensive_combo_effects(active_player):
 
 
 def apply_shield_combo_effect(active_player, shield_combo_effect):
-    # TODO atm it does not support multiplication, ez to add but it was not need so i did not do that
+    # TODO atm it does not support multiplication, ez to add but it was not needed cause there is no such card atm
 
     if shield_combo_effect.action_type == "+":
         shield_possible_values = []
@@ -1374,44 +1403,99 @@ def determine_winner(battling_player1, battling_player2):
         return battling_player1
     elif battling_player1.player_health < battling_player2.player_health:
         return battling_player2
+    elif battling_player1.player_shield > battling_player2.player_shield:
+        return battling_player1
+    elif battling_player1.player_shield < battling_player2.player_shield:
+        return battling_player2
+    elif battling_player1.id>battling_player2.id:
+        return battling_player1
     else:
-        if battling_player1.player_shield > battling_player2.player_shield:
-            return battling_player1
-        elif battling_player1.player_shield < battling_player2.player_shield:
-            return battling_player2
-        else:
-            # todo placeholder for draw
-            return battling_player2
+        return battling_player2
 
 
+# this is what you run
 workbook = load_workbook(filename=rules_filename)
 layers = load_layers(workbook["layers"])
 
 playing_cards = load_cards(workbook["cards"])
 combos = load_combos(workbook["combos"])
-
+battling_ether_cards=[]
+player_decks=[]
 # load cards
 with open(cards_filename, encoding='utf-8') as json_file:
-    nft_cards = json.load(json_file)
+    ether_cards = json.load(json_file)
 
-for index in range(100):
-    nft_card1 = random.choice(nft_cards)
-    nft_card2 = random.choice(nft_cards)
-    player1 = Player(nft_card1, layers, combos, playing_cards)
-    player2 = Player(nft_card2, layers, combos, playing_cards)
-    player1.generate_random_deck()
-    player2.generate_random_deck()
+with open(players_info_filename, encoding='utf-8') as json_file:
+    players_info = json.load(json_file)
 
+
+def find_ether_card(id):
+    for ec in ether_cards:
+        if ec["id"] == id:
+            return ec
+    return "Not found"
+
+# assign the stats from cards.json to the players
+def get_ether_cards():
+    for player_info in players_info:
+        player_id=player_info["id"]
+        ether_card=find_ether_card(player_id)
+        if ether_card != "Not fund":
+            battling_ether_cards.append(ether_card)
+
+def display_player_info(player):
+        print("-------------------------------------------------")
+        print("Player id:",player.params["card_id"])
+        print("Deck limit:",player.params["deck_limit"])
+        print("Deck max cost: 200")
+        print("Character type:", player.params["character_type"])
+        print("Combo group:",player.params["combo_group"])
+        print("Player max health:", player.params["health"])
+        print("Player base crit chance:",player.params["crit"])
+        print("Player dna:",player.params["dna"])
+
+        print("-------------------------------------------------")
+
+def transform_deck_code(deck_code):
+    deck=[]
+    for card_code in deck_code:
+        card=playing_cards[card_code["name"]]
+        deck.append(card)
+    return deck
+# load decks for the players
+
+
+def get_decks():
+    for player_info in players_info:
+        deck_code=player_info["deck"]
+        player_decks.append(transform_deck_code(deck_code))
+
+
+def simulate_battle():
+    get_decks()
+
+    player1.validate_and_assign_deck(player_decks[0])
+    #player1.generate_random_deck()
+    player2.validate_and_assign_deck(player_decks[1])
+    #player2.generate_random_deck()
     player1_score = 0
     player2_score = 0
     player1_dna = player1.params["dna"]
     player2_dna = player2.params["dna"]
-
-    for i in range(1):
-        round_winner=battle(player1, player2)
+    for i in range(9):
+        round_winner = battle(player1, player2)
         print("The winner is: ", round_winner.player_dna)
         if round_winner.player_dna == player1_dna:
-            player1_score +=1
+            player1_score += 1
         elif round_winner.player_dna == player2_dna:
             player2_score += 1
-        print("The score is:",player1_score,"-",player2_score)
+        print("The score is:", player1_score, "-", player2_score)
+
+
+get_ether_cards()
+player1 = Player(battling_ether_cards[0], layers, combos, playing_cards)
+player2 = Player(battling_ether_cards[1], layers, combos, playing_cards)
+
+display_player_info(player1)
+display_player_info(player2)
+simulate_battle()
