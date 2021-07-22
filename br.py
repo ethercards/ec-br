@@ -9,12 +9,10 @@ import copy
 rules_filename = "deckfight2.xlsx"
 cards_filename = "cards.json"
 players_info_filename="players.json"
+begining_of_round_report="begining_of_round_report"
 
+series_report = []
 
-# open xls
-# load cards
-
-##########################################
 
 
 class Player:
@@ -103,8 +101,6 @@ class Player:
         return self.params
 
 
-
-
 class BattlingPlayerObject:
     def __init__(self, player):
         # initializing permanent components
@@ -123,6 +119,7 @@ class BattlingPlayerObject:
         self.debuffs = []
         self.player_crit_chance = player.params["crit"]
         self.player_current_deck_size = len(self.player_deck)
+
 
 class Debuff:
 
@@ -179,6 +176,7 @@ class SpecialDebuff:
     def reduce_card_count(self):
         self.card_count-=1
 
+
 class CardValueReducerDebuff:
 
     def __init__(self,neutralizer_card,uuid):
@@ -208,6 +206,7 @@ class CardValueReducerDebuff:
 
     def reduce_card_count(self):
         self.card_count -= 1
+
 
 class ComboEffect:
     def __init__(self, combo_card):
@@ -309,6 +308,7 @@ class ComboBoost:
             self.action_type = boost_card["life"]["action"]
             self.amount = int(boost_card["life"]["amount"])
 
+
 class AttackBoost:
     def __init__(self, boost_card, id):
         self.boost_card = boost_card
@@ -323,6 +323,7 @@ class AttackBoost:
 
         self.card_timing = int(boost_card["card_timing"])
         self.card_count = int(boost_card["card_count"])
+
 
 class LifeBoost:
     def __init__(self, boost_card, id):
@@ -380,9 +381,7 @@ class SpecialBoost:
 
         self.card_timing = int(boost_card["card_timing"])
         self.card_count = int(boost_card["card_count"])
-
-
-##########################################
+#############################
 
 def count_rows(worksheet):
     row_count = 0
@@ -413,9 +412,6 @@ def fetch_values(sheet, columns):
                 dict[column] = value
         dict_list.append(dict)
     return dict_list
-
-
-##########################################
 
 
 def load_layers(sheet):
@@ -591,6 +587,10 @@ def load_combos(sheet):
     return combos
 
 
+def add_report_to_report(keyword,data):
+    series_report.append({keyword,data})
+
+
 def battle(player1, player2):
     player1_copy=copy.deepcopy(player1)
     player2_copy=copy.deepcopy(player2)
@@ -603,7 +603,7 @@ def battle(player1, player2):
 
     print_overall_info(battling_player1)
     print_overall_info(battling_player2)
-
+    #add_report_to_report("")
     print("+++++++++++++++++++++")
     print("Round ", round_counter, ": ")
     print("+++++++++++++++++++++")
@@ -630,6 +630,7 @@ def print_overall_info(battling_player):
           battling_player.player_shield, "crit:", battling_player.player_crit_chance)
     print(battling_player.player_dna, "deck size:", len(battling_player.player_deck),"current combo string:",battling_player.player_combo_string, "active boost:",
           len(battling_player.active_boosts), "active debuffs:", len(battling_player.debuffs))
+
 
 def evaluate_round(battling_player1, battling_player2):
 
@@ -1124,52 +1125,61 @@ def evaluate_defense_card(active_player, card_to_play, life_boosts=[], shield_bo
     # check if the card is of type shield
     if "shield" in card_to_play:
         # calculating final shield value
-        min_shield_value = card_to_play["shield"]["amount"]
-        max_shield_value = card_to_play["shield"]["extra"]
-        random_shield_array = []
-        if min_shield_value == max_shield_value:
-            final_shield_value=min_shield_value
-        else:
-            for shield_value in range(min_shield_value, max_shield_value):
-                random_shield_array.append(shield_value)
-            final_shield_value = random.choice(random_shield_array)
-
-        # evaluating shield boost
-        if len(shield_boosts) > 0:
-            final_shield_value, active_player = evaluate_shield_boost(final_shield_value, active_player, shield_boosts)
-        # apply shield to player
-        active_player.player_shield += final_shield_value
-        print(active_player.player_dna, "gained ", final_shield_value, "shield, his current total is: ",
-              active_player.player_shield)
+       active_player = evaluate_shield_card(active_player,card_to_play,shield_boosts)
 
     else:
         if "life" in card_to_play:
-
             # calculating final life value
-            min_life_value = card_to_play["life"]["amount"]
-            max_life_value = card_to_play["life"]["extra"]
-            random_life_array = []
-            if min_life_value == max_life_value:
-                final_life_value=min_life_value
-            else:
-                for life_value in range(min_life_value, max_life_value):
-                    random_life_array.append(life_value)
-                final_life_value = random.choice(random_life_array)
+            active_player = evaluate_life_card(active_player,card_to_play,life_boosts)
 
-            # evaluating life boost
-            if len(life_boosts) > 0:
-                final_life_value, active_player = evaluate_life_boost(final_life_value, active_player, life_boosts)
 
-            # apply life to player
-            active_player.player_health += final_life_value
+def evaluate_life_card(active_player,card_to_play,life_boosts):
+    min_life_value = card_to_play["life"]["amount"]
+    max_life_value = card_to_play["life"]["extra"]
+    random_life_array = []
+    if min_life_value == max_life_value:
+        final_life_value = min_life_value
+    else:
+        for life_value in range(min_life_value, max_life_value):
+            random_life_array.append(life_value)
+        final_life_value = random.choice(random_life_array)
 
-            # capping the hp
-            if active_player.player_health > active_player.player_max_health:
-                health_surplus = active_player.player_health - active_player.player_max_health
-                active_player.player_health = active_player.player_max_health
-                final_life_value -= health_surplus
-            print(active_player.player_dna, "gained ", final_life_value, " life, his total is now: ",
-                  active_player.player_health)
+    # evaluating life boost
+    if len(life_boosts) > 0:
+        final_life_value, active_player = evaluate_life_boost(final_life_value, active_player, life_boosts)
+
+    # apply life to player
+    active_player.player_health += final_life_value
+
+    # capping the hp
+    if active_player.player_health > active_player.player_max_health:
+        health_surplus = active_player.player_health - active_player.player_max_health
+        active_player.player_health = active_player.player_max_health
+        final_life_value -= health_surplus
+    print(active_player.player_dna, "gained ", final_life_value, " life, his total is now: ",
+          active_player.player_health)
+    return active_player
+
+
+def evaluate_shield_card(active_player,card_to_play,shield_boosts):
+    min_shield_value = card_to_play["shield"]["amount"]
+    max_shield_value = card_to_play["shield"]["extra"]
+    random_shield_array = []
+    if min_shield_value == max_shield_value:
+        final_shield_value = min_shield_value
+    else:
+        for shield_value in range(min_shield_value, max_shield_value):
+            random_shield_array.append(shield_value)
+        final_shield_value = random.choice(random_shield_array)
+
+    # evaluating shield boost
+    if len(shield_boosts) > 0:
+        final_shield_value, active_player = evaluate_shield_boost(final_shield_value, active_player, shield_boosts)
+    # apply shield to player
+    active_player.player_shield += final_shield_value
+    print(active_player.player_dna, "gained ", final_shield_value, "shield, his current total is: ",
+          active_player.player_shield)
+    return  active_player
 
 
 def evaluate_life_boost(final_value, active_player, active_life_boosts):
