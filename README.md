@@ -1,4 +1,4 @@
-# Battle Royale Engine
+# Ether Cards' Battle Royale Engine
 This is the implementation of Ether Cards' Battle Royale game.
 
 The Project Document and the balance data will be linked in this README a bit later.
