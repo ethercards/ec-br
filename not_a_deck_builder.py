@@ -164,7 +164,7 @@ def try_to_add_card_to_deck(id,deck, deck_cost,combos):
     combos+= card["combo_sign"]
     print("Card added successfully, your total deck cost is:", deck_cost, "cards used so far:", len(deck), "current combo sequence:", combos)
     print("You can add a maximum of",deck_limit-len(deck), "more cards")
-    print (deck)
+    print(json.dumps(deck))
     return deck,deck_cost,combos
 
 create_deck()
