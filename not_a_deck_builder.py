@@ -1,6 +1,7 @@
 from openpyxl import load_workbook
 from itertools import islice
 from collections import OrderedDict
+import json
 
 
 rules_filename = "deckfight2.xlsx"
@@ -137,7 +138,7 @@ def create_deck():
         if len(id)>0:
             if id== "x":
                 print("your deck:")
-                print (deck)
+                print(json.dumps(deck))
                 return 0
             else:
                 id=int(id)
