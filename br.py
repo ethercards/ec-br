@@ -4,16 +4,50 @@ from collections import OrderedDict
 import json
 import uuid
 import random
+import jsonpickle
 import copy
 
 rules_filename = "deckfight2.xlsx"
 cards_filename = "cards.json"
 players_info_filename="players.json"
-begining_of_round_report="begining_of_round_report"
+
+# keywords for crating the report
+# region
+keyword="keyword"
+beginning_of_round_report_keyword="beginning_of_round_report"
+card_played_keyword="card_played"
+phase_started_keyword="phase_started"
+phase_ended_keyword="phase_ended"
+debuff_applied_keyword="debuff_applied"
+card_reducer_debuff_effect_activated_keyword="card_reducer_debuff_effect_activated"
+card_reducer_debuff_effectiveness_keyword="card_reducer_debuff_effectiveness"
+special_debuff_effect_activated_keyword = "special_debuff_effect_activated"
+debuff_card_count_reduced_keyword="debuff_card_count_reduced"
+boost_applied_keyword="boost_applied"
+combo_found_keyword="combo_found"
+combo_boosted_keyword="combo_boosted"
+boost_card_count_reduced_keyword="boost_card_count_reduced"
+effect_applied_keyword="effect_applied"
+defense_effect_activated_keyword="defense_effect_activated"
+defense_played_keyword="defense_played"
+defense_boosted_keyword="defense_boosted"
+defense_applied_keyword="defense_applied"
+attack_effect_activated_keyword="attack_effect_activated"
+damage_dealt_keyword="damage_deal"
+pierce_applied_keyword="pierce_applied"
+crit_boosted_keyword="crit_boosted"
+attack_played_keyword="attack_played"
+attack_boosted_keyword="attack_boosted"
+attack_applied_keyword="attack_applied"
+end_of_game_report_keyword="end_of_game_report"
+end_of_series_report_keyword="end_of_series_report"
+
+# endregion
 
 series_report = []
-
-
+#TODO keep track of damages dealt
+damages_dealt={}
+total_healths={}
 
 class Player:
 
@@ -81,7 +115,7 @@ class Player:
             else:
                 deck_cost+=card["cost"]
 
-        if deck_cost > 200:
+        if deck_cost > 300:
             self.params["deck"] = []
             print(self.params["card_id"])
             print("invalid deck, deck total cost to high:", deck_cost, "... the maximum allowed is 200")
@@ -127,7 +161,7 @@ class Debuff:
         self.neutralizer_card=neutralizer_card
         self.special_debuff = None
         self.card_value_reducer_debuff=None
-        self.uuid=uuid.uuid4()
+        self.uuid=str(uuid.uuid4())
         self.card_count = 1
         self.card_timing = 0
         self.evaluate_neutralizer_card(neutralizer_card)
@@ -136,6 +170,13 @@ class Debuff:
         if "card_count" in neutralizer_card:
             self.card_count = int(neutralizer_card["card_count"])
 
+    def toJSON(self):
+        if self.special_debuff is not None:
+            self.special_debuff.toJSON()
+        if self.card_value_reducer_debuff is not None:
+            self.card_value_reducer_debuff.toJSON()
+        return json.dumps(self, default=lambda o: o.__dict__,
+                          sort_keys=True, indent=4)
     def reduce_card_count(self):
         self.card_count -= 1
         if self.special_debuff is not None:
@@ -170,6 +211,9 @@ class SpecialDebuff:
         if "card_count" in neutralizer_card:
             self.card_count= int(neutralizer_card["card_count"])
 
+    def toJSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__,
+                      sort_keys=True, indent=4)
     def reduce_card_timer(self):
         self.card_timing-=1
 
@@ -200,6 +244,9 @@ class CardValueReducerDebuff:
         if "crit" in neutralizer_card:
             self.action = neutralizer_card["crit"]["action"]
             self.amount = neutralizer_card["crit"]["amount"]
+    def toJSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__,
+                      sort_keys=True, indent=4)
 
     def reduce_card_timer(self):
         self.card_timing -= 1
@@ -587,8 +634,310 @@ def load_combos(sheet):
     return combos
 
 
-def add_report_to_report(keyword,data):
-    series_report.append({keyword,data})
+def add_to_report(data):
+    series_report.append(data)
+
+
+def create_phase_started_report(phase_name):
+    data = {
+        keyword:phase_started_keyword,
+        "phase_name": phase_name
+    }
+    return  data
+
+
+def create_phase_ended_report(phase_name):
+    data = {
+        keyword:phase_ended_keyword,
+        "phase_name": phase_name
+    }
+    return  data
+
+
+def create_card_played_report(battling_player_id,card_played):
+    data ={
+        keyword:card_played_keyword,
+        "player_id": battling_player_id,
+        card_played_keyword: card_played
+    }
+    return  data
+
+
+def create_card_reducer_debuff_effectiveness_report(defending_player_id, effectiveness):
+    data={
+        keyword:card_reducer_debuff_effectiveness_keyword,
+        "defending_player_id":defending_player_id,
+        "effectiveness":effectiveness
+    }
+    return  data
+
+def create_debuff_applied_report(attacking_player_id,defending_player_id, debuff):
+    data = {
+        keyword : debuff_applied_keyword,
+        "defending_player_id": defending_player_id,
+        "attacking_player_id":attacking_player_id,
+        "debuff" : debuff
+    }
+
+    return  data
+
+
+def create_card_reducer_debuff_effect_activated_report(defending_player_id,parameter, action_type, old_values, new_values, amount):
+    data = {
+        keyword:card_reducer_debuff_effect_activated_keyword,
+        "defending_player_id":defending_player_id,
+        "parameter": parameter,
+        "action_type":action_type,
+        "amount":amount,
+        "old_values" : old_values,
+        "new_values" : new_values
+    }
+
+    return  data
+
+
+def create_debuff_card_count_reduced_report(message, card_count_left):
+    data ={
+        keyword : debuff_card_count_reduced_keyword,
+        "message": message,
+        "card_count_left": card_count_left
+    }
+    return  data
+
+def create_special_debuff_activated_report(defending_player_id,message):
+    data = {
+        keyword : special_debuff_effect_activated_keyword,
+        "defending_player_id":defending_player_id,
+        "message": message
+    }
+    return  data
+
+
+def create_boost_applied_report(active_player_id,boost):
+    data={
+        keyword: boost_applied_keyword,
+        "active_player_id": active_player_id,
+        "boost": boost
+    }
+
+    return  data
+
+def create_combo_found_report(active_player_id, combo_string,combo_level, combo):
+    data ={
+        keyword:combo_found_keyword,
+        "active_player_id":active_player_id,
+        "como_string": combo_string,
+        "combo_level": combo_level,
+        "combo": combo
+    }
+    return  data
+
+def create_combo_boosted_report(active_player_id,parameter,action_type,old_values,new_values,amount ):
+    data = {
+        keyword : combo_boosted_keyword,
+        "active_player_id":active_player_id,
+        "parameter": parameter,
+        "action_type":action_type,
+        "amount": amount,
+        "old_values": old_values,
+        "new_values": new_values
+    }
+    return  data
+
+
+def create_boost_card_count_reduced_keyword(message,card_count_left):
+    data = {
+        keyword: boost_card_count_reduced_keyword,
+        "message": message,
+        "card_count_left": card_count_left
+    }
+    return data
+
+def create_effect_applied_report(active_player_id, effect):
+    data= {
+        keyword: effect_applied_keyword,
+        "active_player_id" : active_player_id,
+        "effect" : effect
+    }
+    return data
+
+def create_defense_effect_activated_report(defending_player_id,defense_type, gained_amount,new_value):
+    data = {
+        keyword : defense_effect_activated_keyword,
+        "defending_player_id":defending_player_id,
+        "defense_type":defense_type,
+        "gained_amount":gained_amount,
+        "new_value": new_value
+    }
+    return  data
+
+
+def create_defense_played_report(defending_player_id, defense_type, min_value, max_value, final_value):
+    data = {
+        keyword : defense_played_keyword,
+        "defending_player_id": defending_player_id,
+        "defense_type": defense_type,
+        "min_value": min_value,
+        "max_value": max_value,
+        "final_value": final_value,
+    }
+    return  data
+
+
+def create_defense_boosted_report(defending_player_id, defense_type, boost_amount, boost_type, old_value, new_value):
+    data = {
+        keyword : defense_boosted_keyword,
+        "defending_player_id": defending_player_id,
+        "defense_type": defense_type,
+        "boost_amount": boost_amount,
+        "boost_type": boost_type,
+        "old_value": old_value,
+        "new_value": new_value
+    }
+    return  data
+
+
+def create_defense_applied_report(defending_player_id, defense_type, amount, new_health, new_shield):
+    data = {
+        keyword: defense_applied_keyword,
+        "defending_player_id": defending_player_id,
+        "defense_type":defense_type,
+        "amount": amount,
+        "new_health": new_health,
+        "new_shield": new_shield
+    }
+
+    return data
+
+
+def create_attack_effect_activated_report(attacking_player_id, min_value, max_value, final_value):
+    data ={
+        keyword: attack_effect_activated_keyword,
+        "attacking_player_id": attacking_player_id,
+        "min_value": min_value,
+        "max_value": max_value,
+        "final_value": final_value
+    }
+    return data
+
+
+def create_damage_dealt_report(attacking_player_id,defending_player_id, damage_blocked, damage_dealt,new_health, new_shield):
+    data ={
+        keyword : damage_dealt_keyword,
+        "attacking_player_id":attacking_player_id,
+        "defending_player_id":defending_player_id,
+        "damage_blocked": damage_blocked,
+        "damage_dealt": damage_dealt,
+        "new_health":new_health,
+        "new_shield": new_shield
+    }
+    return  data
+
+
+def create_pierce_applied_report(attacking_player_id, pierce_applied):
+    data= {
+        keyword:pierce_applied_keyword,
+        "attacking_player":attacking_player_id,
+        "pierce_applied": pierce_applied
+    }
+    return data
+
+
+def create_crit_boosted(attacking_player_id,action_type, amount, old_value, new_value):
+    data = {
+        keyword:crit_boosted_keyword,
+        "attacking_player_id":attacking_player_id,
+        "amount": amount,
+        "action_type":action_type,
+        "old_value": old_value,
+        "new_value": new_value
+    }
+    return data
+
+
+def create_attack_played_report(attacking_player_id, min_attack, max_attack, crit_chance, was_crit, final_damage):
+    data = {
+        keyword: attack_played_keyword,
+        "attacking_player_id": attacking_player_id,
+        "min_attack": min_attack,
+        "max_attack": max_attack,
+        "crit_chance": crit_chance,
+        "was_crit":was_crit,
+        "final_damage": final_damage
+    }
+
+    return data
+
+
+def create_attack_boosted_report(attacking_player_id, boost_type, boost_amount, old_value, new_value):
+    data = {
+        keyword: attack_boosted_keyword,
+        "attacking_player_id": attacking_player_id,
+        "boost_type":boost_type,
+        "boost_amount": boost_amount,
+        "old_value": old_value,
+        "new_value": new_value
+    }
+    return data
+
+
+def create_attack_applied(attacking_player_id, final_damage, is_piercing):
+    data = {
+        keyword:attack_applied_keyword,
+        "attacking_player_id":attacking_player_id,
+        "final_damage": final_damage,
+        "is_piercing":is_piercing
+    }
+    return data
+
+
+def create_beginning_of_round_report(round_counter,battling_player1,battling_player2):
+    data ={
+        "key_word": beginning_of_round_report_keyword,
+        "round":round_counter,
+        "players_info":[{
+            "player_id":battling_player1.id,
+            "shield": battling_player1.player_shield,
+            "health": battling_player1.player_health,
+            "active_boosts": len(battling_player1.active_boosts),
+            "combo_effects": len(battling_player1.combo_effects),
+            "debuffs": len(battling_player1.debuffs),
+            "crit_chace": battling_player1.player_crit_chance,
+            "deck_size": len(battling_player1.player_deck),
+            "combo_string" : battling_player1.player_combo_string
+        },{
+            "player_id": battling_player2.id,
+            "shield": battling_player2.player_shield,
+            "health": battling_player2.player_health,
+            "active_boosts": len(battling_player2.active_boosts),
+            "combo_effects": len(battling_player2.combo_effects),
+            "debuffs": len(battling_player2.debuffs),
+            "crit_chace": battling_player2.player_crit_chance,
+            "deck_size": len(battling_player2.player_deck),
+            "combo_string": battling_player2.player_combo_string
+
+        }]
+    }
+    return  data
+
+
+def create_end_of_game_report(winner_id, score):
+    data={
+        keyword:end_of_game_report_keyword,
+        "winner_id": winner_id,
+        "score" : score
+    }
+    return  data
+
+def create_end_of_series_report(winner_id, total_damages_dealt, final_hps,score):
+    data={
+        keyword:end_of_series_report_keyword,
+        "winner_id":winner_id,
+        "total_damages_dealt":total_damages_dealt,
+        "final_hps":final_hps,
+        "score":score
+    }
+    return data
 
 
 def battle(player1, player2):
@@ -603,15 +952,17 @@ def battle(player1, player2):
 
     print_overall_info(battling_player1)
     print_overall_info(battling_player2)
-    #add_report_to_report("")
+    data= create_beginning_of_round_report(round_counter,battling_player1,battling_player2)
+    add_to_report(data)
     print("+++++++++++++++++++++")
     print("Round ", round_counter, ": ")
     print("+++++++++++++++++++++")
     round_counter += 1
     while evaluate_round(battling_player1, battling_player2):
+        data = create_beginning_of_round_report(round_counter, battling_player1, battling_player2)
+        add_to_report(data)
         print("+++++++++++++++++++++")
         print("Round ", round_counter, ": ")
-        round_counter += 1
         print("+++++++++++++++++++++")
         print("----------------------------")
         print("Beggining of round player state:")
@@ -621,6 +972,7 @@ def battle(player1, player2):
         print("----------------------------")
         print("Round evaluation begins:")
         print("----------------------------")
+        round_counter += 1
     return determine_winner(battling_player1, battling_player2)
 
 
@@ -637,9 +989,13 @@ def evaluate_round(battling_player1, battling_player2):
     # game over condition
 
     battling_player1_card_to_play = try_to_play_card(battling_player1)
+    data = create_card_played_report(battling_player1.id,battling_player1_card_to_play)
+    add_to_report(data)
 
     battling_player2_card_to_play = try_to_play_card(battling_player2)
-
+    data = create_card_played_report(battling_player2.id, battling_player2_card_to_play)
+    add_to_report(data)
+    
     evaluate_cards(battling_player1, battling_player1_card_to_play, battling_player2, battling_player2_card_to_play)
 
     battling_player1.combo_effects = []
@@ -712,7 +1068,8 @@ def evaluate_neutralizer_phase(battling_player1, battling_player1_card_to_play,
     print("----------------------------")
     print("Neutralizer phase started")
     print("----------------------------")
-
+    data= create_phase_started_report("neutralizer_phase")
+    add_to_report(data)
     battling_player1,battling_player1_card_to_play,battling_player2,battling_player2_card_to_play \
         = evaluate_neutralizer_phase_for_player(
         battling_player1,battling_player1_card_to_play,battling_player2,battling_player2_card_to_play)
@@ -721,6 +1078,8 @@ def evaluate_neutralizer_phase(battling_player1, battling_player1_card_to_play,
         = evaluate_neutralizer_phase_for_player(
         battling_player2,battling_player2_card_to_play,battling_player1,battling_player1_card_to_play)
 
+    data = create_phase_ended_report("neutralizer_phase")
+    add_to_report(data)
     print("----------------------------")
     print("Neutralizer phase ended")
     print("----------------------------")
@@ -744,6 +1103,8 @@ def evaluate_neutralizer_card(attacking_player,card_to_play, defending_player):
 
     debuff = Debuff(card_to_play)
     defending_player.debuffs.append(debuff)
+    data= create_debuff_applied_report(attacking_player.id,defending_player.id,card_to_play)
+    add_to_report(data)
     print (attacking_player.player_dna,debuff.neutralizer_card,"debuff applied on", defending_player.player_dna)
     return attacking_player,defending_player
 
@@ -776,10 +1137,14 @@ def remove_debuff_counter(defending_player,debuff_uuid):
         if defending_player.debuffs[index].uuid == debuff_uuid:
             if int(defending_player.debuffs[index].card_count) == 1:
                 debuff_to_remove_index = index
+                data = create_debuff_card_count_reduced_report("Debuff has no more charges",0)
+                add_to_report(data)
                 print("debuff with id:", defending_player.debuffs[index].neutralizer_card, "has no more charges, removing it")
             else:
                 new_card_count = int(defending_player.debuffs[index].card_count) - 1
                 defending_player.debuffs[index].card_count = new_card_count
+                data = create_debuff_card_count_reduced_report("Debuff has more than 1 charge, removing 1 from it, new charges left:", new_card_count)
+                add_to_report(data)
                 print("debuff with id:", defending_player.debuffs[index].neutralizer_card, "has more than 1 charge, removing 1 from it, new charges left:",
                       defending_player.debuffs[index].card_count)
 
@@ -814,8 +1179,12 @@ def apply_card_reducer_debuff(defending_player, card_value_reducer_debuff, card_
                 ineffective_debuff=apply_card_reducer_debuff_on_non_boost_card_with_parameter(defending_player,card_value_reducer_debuff,card_played,"crit")
 
     if ineffective_debuff:
+        data= create_card_reducer_debuff_effectiveness_report(defending_player.id,"useless")
+        add_to_report(data)
         print("Useless card reducer debuff applied on", defending_player.player_dna)
     else:
+        data = create_card_reducer_debuff_effectiveness_report(defending_player.id, "effective")
+        add_to_report(data)
         print("Effective card reducer debuff applied on on", defending_player.player_dna)
 
 def apply_card_reducer_debuff_on_boost_card_with_parameter(defending_player,card_value_reducer_debuff,card_played,parameter):
@@ -832,6 +1201,9 @@ def apply_card_reducer_debuff_on_boost_card_with_parameter(defending_player,card
         if card_played[parameter]["amount"] < 0:
             card_played[parameter]["amount"] = 0
     new_value = card_played[parameter]["amount"]
+    
+    data = create_card_reducer_debuff_effect_activated_report(defending_player.id,parameter,card_value_reducer_debuff.action,min_value,new_value,card_value_reducer_debuff.amount)
+    add_to_report(data)
     print(defending_player.player_dna, "card reducer debuff applied on",parameter," boost card, from", action_type, min_value,
           "to", new_value)
     return False
@@ -856,11 +1228,21 @@ def apply_card_reducer_debuff_on_non_boost_card_with_parameter(defending_player,
             if parameter != "crit":
                 card_played[parameter]["extra"] = 0
     if parameter != "crit":
-        print(defending_player.player_dna, "card reducer debuff applied on",parameter,"card, from", action_type, min_value, "-",
+        old_values=min_value, "-",max_value
+        new_values=card_played[parameter]["amount"], "-", card_played[parameter]["extra"]
+        data = create_card_reducer_debuff_effect_activated_report(defending_player.id, parameter, card_value_reducer_debuff.action,
+                                                                  old_values, new_values,
+                                                                  card_value_reducer_debuff.amount)
+        add_to_report(data)
+        print(defending_player.player_dna, "card reducer debuff applied on",parameter,"card, from", card_value_reducer_debuff.action, min_value, "-",
               max_value,
               "to", card_played[parameter]["amount"], "-", card_played[parameter]["extra"])
     else:
-        print(defending_player.player_dna, "card reducer debuff applied on", parameter, "card, from", action_type,
+        data = create_card_reducer_debuff_effect_activated_report(defending_player.id, parameter, action_type,
+                                                                  min_value, new_value,
+                                                                  card_value_reducer_debuff.amount)
+        add_to_report(data)
+        print(defending_player.player_dna, "card reducer debuff applied on", parameter, "card, from", card_value_reducer_debuff.action,
               min_value,"to", card_played[parameter]["amount"])
 
     return False
@@ -870,6 +1252,8 @@ def apply_combo_sign_cancel(defending_player):
     previous_combo_string=defending_player.player_combo_string
     #defending_player.player_combo_string= defending_player.player_combo_string[:-1]
     defending_player.player_combo_string=""
+    data = create_special_debuff_activated_report(defending_player.id,"Combo string reset")
+    add_to_report(data)
     print(defending_player.player_dna,"Combo string changed from:",previous_combo_string,"to",defending_player.player_combo_string)
 
 
@@ -881,11 +1265,15 @@ def apply_deck_manipulator_debuff(defending_player,debuff_description):
             second_card =defending_player.player_deck[1]
             defending_player.player_deck[0]=second_card
             defending_player.player_deck[1]=first_card
+            data= create_special_debuff_activated_report(defending_player.id,"First two cards swapped")
+            add_to_report(data)
             print(defending_player.player_dna, "first two cards swapped")
         if debuff_description == "to the bottom":
             first_card=defending_player.player_deck[0]
             defending_player.player_deck.pop(0)
             defending_player.player_deck.append(first_card)
+            data = create_special_debuff_activated_report(defending_player.id, "First card sent to botoom")
+            add_to_report(data)
             print (defending_player.player_dna,"first card sent to bottom")
 
 
@@ -895,10 +1283,13 @@ def evaluate_boost_phase(battling_player1, battling_player1_card_to_play,
     print("----------------------------")
     print("Boost phase started")
     print("----------------------------")
+    data = create_phase_started_report("boost_phase")
+    add_to_report(data)
     evaluate_boost_phase_for_player(battling_player1,battling_player1_card_to_play)
 
     evaluate_boost_phase_for_player(battling_player2,battling_player2_card_to_play)
-
+    data = create_phase_ended_report("boost_phase")
+    add_to_report(data)
     print("----------------------------")
     print("Boost phase ended")
     print("----------------------------")
@@ -911,6 +1302,8 @@ def evaluate_boost_phase_for_player(battling_player,battling_player_card_to_play
         if battling_player_card_to_play["combo_sign"] == "B":
             boost = Boost(battling_player_card_to_play)
             battling_player.active_boosts.append(boost)
+            data = create_boost_applied_report(battling_player.id,battling_player_card_to_play)
+            add_to_report(data)
             print(battling_player.player_dna,"added the following boost",boost.boost_card)
 
 
@@ -920,10 +1313,14 @@ def remove_boost_counter(active_player, boost_id):
         if active_player.active_boosts[index].unique_id == boost_id:
             if int(active_player.active_boosts[index].boost_card["card_count"]) == 1:
                 boost_to_remove_index = index
+                data= create_boost_card_count_reduced_keyword("Boost has no more charges, removing it",0)
+                add_to_report(data)
                 print("boost card:", active_player.active_boosts[index].boost_card, "has no more charges, removing it")
             else:
                 new_card_count = int(active_player.active_boosts[index].boost_card["card_count"]) - 1
                 active_player.active_boosts[index].boost_card["card_count"] = new_card_count
+                data = create_boost_card_count_reduced_keyword("Boost has more than 1 charge, removing 1 from it, new charges left:", new_card_count)
+                add_to_report(data)
                 print("boost card with id:", active_player.active_boosts[index].boost_card, "has more than 1 charge, removing 1 from it, new charges left:",
                       new_card_count)
 
@@ -937,6 +1334,8 @@ def evaluate_combo_phase(battling_player1, battling_player2):
     print("----------------------------")
     print("Combo phase started")
     print("----------------------------")
+    data = create_phase_started_report("combo_phase")
+    add_to_report(data)
 
     # check for level1 combo
     battling_player1 = evaluate_combo_level_n(5, battling_player1)
@@ -957,6 +1356,9 @@ def evaluate_combo_phase(battling_player1, battling_player2):
     # check for level5 combo
     battling_player1 = evaluate_combo_level_n(1, battling_player1)
     battling_player2 = evaluate_combo_level_n(1, battling_player2)
+
+    data = create_phase_ended_report("combo_phase")
+    add_to_report(data)
 
     print("----------------------------")
     print("Combo phase ended")
@@ -981,9 +1383,13 @@ def evaluate_combo_level_n(n, battling_player):
         for combo in battling_player.player_combos:
             if combo["combo_code"] == combo_string:
                 battling_player.player_combo_string = ""
+                data= create_combo_found_report(battling_player.id,combo_string,n,combo)
+                add_to_report(data)
                 print(battling_player.player_dna,"found a level",n, "combo: ", combo_string, ". adding boost to player")
                 if combo["target_type"] == "combo":
                     boost = Boost(combo)
+                    data = create_boost_applied_report(battling_player.id,boost)
+                    add_to_report(data)
                     battling_player.active_boosts.append(boost)
                 else:
                     if combo["target_type"] == "player":
@@ -993,7 +1399,13 @@ def evaluate_combo_level_n(n, battling_player):
                             combo,battling_player = boost_combo(combo,battling_player)
                         combo_effect = ComboEffect(combo)
                         battling_player.combo_effects.append(combo_effect)
+                        data=create_effect_applied_report(battling_player.id,combo)
+                        print("hola")
+                        add_to_report(data)
                     if combo["target_type"] == "card":
+                        if len(check_for_combo_boosts(battling_player))>0:
+                            combo,battling_player = boost_combo(combo,battling_player)
+                        # TODO the reason why we are not boo    sting these things, because they would be way to op, I have to talk about this with someone
                         card_boost= Boost(combo)
                         battling_player.active_boosts.append(card_boost)
     return battling_player
@@ -1019,17 +1431,26 @@ def boost_combo(combo,battling_player):
 
 
 def boost_combo_with_parameter(combo,first_boost,battling_player,parameter):
+    # todo + type boost not supported yet, but there was no need for it with the current cards
     min_amount = combo[parameter]["amount"]
     if parameter != "crit":
         max_amount = combo[parameter]["extra"]
     combo[parameter]["amount"] *= first_boost.combo_boost.amount
     if parameter != "crit":
         combo[parameter]["extra"] *= first_boost.combo_boost.amount
-    print(battling_player.player_dna,parameter,"effect getting boosted by:", first_boost.combo_boost.amount)
     if parameter != "crit":
+        old_values= min_amount,"-",max_amount
+        new_values=combo[parameter]["amount"], "-", combo[parameter]["extra"]
+        data= create_combo_boosted_report(battling_player.id,parameter,"x",old_values,new_values,first_boost.combo_boost.amount)
+        add_to_report(data)
         print(battling_player.player_dna, "original",parameter,"effect of", min_amount, "-", max_amount,
               "boosted to:", combo[parameter]["amount"], "-", combo[parameter]["extra"])
     else:
+        old_values = min_amount
+        new_values = combo[parameter]["amount"]
+        data = create_combo_boosted_report(battling_player.id, parameter, "x", old_values, new_values,
+                                           first_boost.combo_boost.amount)
+        add_to_report(data)
         print(battling_player.player_dna, "original", parameter, "effect of", min_amount,"boosted to:", combo[parameter]["amount"])
     return combo
 
@@ -1039,12 +1460,17 @@ def evaluate_defense_phase(battling_player1, battling_player1_card_to_play, batt
     print("----------------------------")
     print("Defense phase started")
     print("----------------------------")
+
+    data = create_phase_started_report("defense_phase")
+    add_to_report(data)
     # evaluate defense for player1
     evaluate_defense_phase_for_player(battling_player1, battling_player1_card_to_play)
 
     # evaluate defense for player2
     evaluate_defense_phase_for_player(battling_player2, battling_player2_card_to_play)
 
+    data = create_phase_ended_report("defense_phase")
+    add_to_report(data)
     print("----------------------------")
     print("Defense phase ended")
     print("----------------------------")
@@ -1094,6 +1520,8 @@ def apply_shield_combo_effect(active_player, shield_combo_effect):
         else:
             final_shield_value = shield_combo_effect.min_amount
         active_player.player_shield += final_shield_value
+        data = create_defense_effect_activated_report(active_player.id,"shield",final_shield_value,active_player.player_shield)
+        add_to_report(data)
         print(active_player.player_dna, "gained", final_shield_value, "shield from a combo effect, his shield now is:",
               active_player.player_shield)
 
@@ -1115,6 +1543,9 @@ def apply_life_combo_effect(active_player, life_combo_effect):
         active_player.player_health += final_life_value
         if active_player.player_health > active_player.player_max_health:
             active_player.player_health = active_player.player_max_health
+
+        data = create_defense_effect_activated_report(active_player.id, "life", final_life_value,active_player.player_health)
+        add_to_report(data)
         print(active_player.player_dna, "gained", final_life_value, "life from a combo effect, his HP now is:",
               active_player.player_health)
 
@@ -1144,6 +1575,9 @@ def evaluate_life_card(active_player,card_to_play,life_boosts):
             random_life_array.append(life_value)
         final_life_value = random.choice(random_life_array)
 
+    data = create_defense_played_report(active_player.id, "life", min_life_value, max_life_value,
+                                        final_life_value)
+    add_to_report(data)
     # evaluating life boost
     if len(life_boosts) > 0:
         final_life_value, active_player = evaluate_life_boost(final_life_value, active_player, life_boosts)
@@ -1156,6 +1590,8 @@ def evaluate_life_card(active_player,card_to_play,life_boosts):
         health_surplus = active_player.player_health - active_player.player_max_health
         active_player.player_health = active_player.player_max_health
         final_life_value -= health_surplus
+    data = create_defense_applied_report(active_player.id, "life", final_life_value,active_player.player_health,active_player.player_shield)
+    add_to_report(data)
     print(active_player.player_dna, "gained ", final_life_value, " life, his total is now: ",
           active_player.player_health)
     return active_player
@@ -1172,11 +1608,16 @@ def evaluate_shield_card(active_player,card_to_play,shield_boosts):
             random_shield_array.append(shield_value)
         final_shield_value = random.choice(random_shield_array)
 
+    data = create_defense_played_report(active_player.id, "shield", min_shield_value, max_shield_value,final_shield_value)
+    add_to_report(data)
     # evaluating shield boost
     if len(shield_boosts) > 0:
         final_shield_value, active_player = evaluate_shield_boost(final_shield_value, active_player, shield_boosts)
     # apply shield to player
     active_player.player_shield += final_shield_value
+    data = create_defense_applied_report(active_player.id, "shield", final_shield_value, active_player.player_health,
+                                         active_player.player_shield)
+    add_to_report(data)
     print(active_player.player_dna, "gained ", final_shield_value, "shield, his current total is: ",
           active_player.player_shield)
     return  active_player
@@ -1184,15 +1625,21 @@ def evaluate_shield_card(active_player,card_to_play,shield_boosts):
 
 def evaluate_life_boost(final_value, active_player, active_life_boosts):
     # evaluate the life boosts that add flat value
+    starting_value=copy.deepcopy(final_value)
     for life_boost in active_life_boosts:
         if life_boost.action_type == "+":
             final_value += life_boost.amount
+            data = create_defense_boosted_report(active_player.id, "life", life_boost.amount, "+", starting_value, final_value)
+            add_to_report(data)
             active_player = remove_boost_counter(active_player, life_boost.unique_id)
             print("Life boosted by +", life_boost.amount, " new final_life_value is: ", final_value)
     # evaluate the life boosts that multiply the value
     for life_boost in active_life_boosts:
         if life_boost.action_type == "x":
             final_value = final_value * life_boost.amount
+            data = create_defense_boosted_report(active_player.id, "life", life_boost.amount, "x", starting_value,
+                                                 final_value)
+            add_to_report(data)
             active_player = remove_boost_counter(active_player, life_boost.unique_id)
             print("Life boosted by x", life_boost.amount, " new final_life_value is: ", final_value)
 
@@ -1201,16 +1648,24 @@ def evaluate_life_boost(final_value, active_player, active_life_boosts):
 
 def evaluate_shield_boost(final_value, active_player, active_shield_boosts):
     # evaluate the shield boosts that add flat value
+    # The reason why this is a little different than the life boosts,
+    # is because there are combos that create boosts with non- flat value
+    starting_value= copy.deepcopy(final_value)
     for shield_boost in active_shield_boosts:
         if shield_boost.action_type == "+":
             if shield_boost.extra is not None and shield_boost.amount == shield_boost.extra:
                 boost_values=[]
                 for number in range(shield_boost.amount, shield_boost.extra):
                     boost_values.append(number)
-                final_value += random.choice(boost_values)
+                    final_boost_amount=random.choice(boost_values)
+                final_value += final_boost_amount
             else:
-                final_value += shield_boost.amount
+                final_boost_amount=shield_boost.amount
+                final_value += final_boost_amount
 
+            data = create_defense_boosted_report(active_player.id, "shield", final_boost_amount, "+", starting_value,
+                                                 final_value)
+            add_to_report(data)
             print(active_player.player_dna, "shield boosted by +", shield_boost.amount, " new final_shield_value is: ",
                   final_value)
             active_player = remove_boost_counter(active_player, shield_boost.unique_id)
@@ -1218,6 +1673,9 @@ def evaluate_shield_boost(final_value, active_player, active_shield_boosts):
     for shield_boost in active_shield_boosts:
         if shield_boost.action_type == "x":
             final_value = final_value * shield_boost.amount
+            data = create_defense_boosted_report(active_player.id, "shield", shield_boost.amount, "x", starting_value,
+                                                 final_value)
+            add_to_report(data)
             print("Shield boosted by x", shield_boost.amount, " new final_shield_value is: ", final_value)
             active_player = remove_boost_counter(active_player, shield_boost.unique_id)
 
@@ -1230,11 +1688,17 @@ def evaluate_attack_phase(battling_player1, battling_player1_card_to_play, battl
     print("Attack phase started")
     print("----------------------------")
 
+    data = create_phase_started_report("attack_phase")
+    add_to_report(data)
+
     # evaluate attack for player1
     evaluate_attack_phase_for_player(battling_player1, battling_player2, battling_player1_card_to_play)
 
     # evaluate attack for player2
     evaluate_attack_phase_for_player(battling_player2, battling_player1, battling_player2_card_to_play)
+
+    data = create_phase_ended_report("attack_phase")
+    add_to_report(data)
 
     print("----------------------------")
     print("Attack phase ended")
@@ -1247,11 +1711,11 @@ def apply_offensive_combo_effects(active_player, target_player):
     if len(active_player.combo_effects) > 0:
         for combo_effect in active_player.combo_effects:
             if combo_effect.attack_combo_effect is not None:
-                target_player = apply_attack_combo_effect(target_player, combo_effect.attack_combo_effect)
+                target_player = apply_attack_combo_effect(active_player,target_player, combo_effect.attack_combo_effect)
     return target_player
 
 
-def apply_attack_combo_effect(defending_player, attack_combo_effect):
+def apply_attack_combo_effect(attacking_player,defending_player, attack_combo_effect):
     if attack_combo_effect.action_type == "+":
         attack_possible_values = []
         if attack_combo_effect.min_amount != attack_combo_effect.max_amount:
@@ -1260,8 +1724,10 @@ def apply_attack_combo_effect(defending_player, attack_combo_effect):
             final_attack_value = random.choice(attack_possible_values)
         else:
             final_attack_value = attack_combo_effect.min_amount
+        data = create_attack_effect_activated_report(attacking_player.id,attack_combo_effect.min_amount,attack_combo_effect.max_amount,final_attack_value)
+        add_to_report(data)
         print("Dealing damage from combo source")
-        defending_player = deal_damage(final_attack_value, defending_player, False)
+        defending_player = deal_damage(attacking_player,final_attack_value, defending_player, False)
     return defending_player
 
 
@@ -1290,6 +1756,8 @@ def check_for_pierce(attacking_player):
         for boost in attacking_player.active_boosts:
             if boost.special_boost is not None:
                 if boost.special_boost.special == "add pierce":
+                    data = create_pierce_applied_report(attacking_player.id,True)
+                    add_to_report(data)
                     print(attacking_player.player_dna, " has pierce")
                     remove_boost_counter(attacking_player, boost.unique_id)
                     return attacking_player, True
@@ -1303,11 +1771,14 @@ def check_for_crit_boost(attacking_player):
                 if boost.crit_boost.action_type == "+":
                     base_crit_chance = attacking_player.player_crit_chance
                     attacking_player.player_crit_chance += boost.crit_boost.amount
+                    if attacking_player.player_crit_chance > 100:
+                        attacking_player.player_crit_chance = 100
+                    data = create_crit_boosted(attacking_player.id,boost.crit_boost.action_type,boost.crit_boost.amount,base_crit_chance,attacking_player.player_crit_chance)
+                    add_to_report(data)
                     print(attacking_player.player_dna, "boosted crit chance from", base_crit_chance, "to",
                           attacking_player.player_crit_chance)
                     attacking_player = remove_boost_counter(attacking_player, boost.crit_boost.unique_id)
-                    if attacking_player.player_crit_chance > 100:
-                        attacking_player.player_crit_chance = 100
+
 
     return attacking_player
 
@@ -1323,6 +1794,7 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
         final_damage = max_attack_damage
         print(attacking_player.player_dna, "Critical hit")
         print(attacking_player.player_dna, "The final damage value is:", final_damage)
+        is_crit=1
     else:
         random_array = [0] * 100
         for i in range(attacking_player_crit_ratio):
@@ -1342,24 +1814,33 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
                 final_damage = random.choice(damage_array)
             print(attacking_player.player_dna, "The final damage value is:", final_damage)
 
+    data = create_attack_played_report(attacking_player.id, min_attack_damage, max_attack_damage,
+                                       attacking_player_crit_ratio, is_crit, final_damage)
+    add_to_report(data)
     # evaluating attack boost
     if len(active_boosts) > 0:
         final_damage, attacking_player = evaluate_attack_boost(final_damage, attacking_player, active_boosts)
 
-    defending_player = deal_damage(final_damage, defending_player, is_piercing)
+    defending_player = deal_damage(attacking_player,final_damage, defending_player, is_piercing)
 
 
 def evaluate_attack_boost(final_damage, attacking_player, active_boosts):
     # evaluate flat bonus damage
+    starting_value=copy.deepcopy(final_damage)
     for attack_boost in active_boosts:
         if attack_boost.action_type == "+":
             if attack_boost.extra is not None and attack_boost.amount == attack_boost.extra:
                 boost_values = []
                 for number in range(attack_boost.amount, attack_boost.extra):
                     boost_values.append(number)
-                final_damage += random.choice(boost_values)
+                    final_boost_amount=random.choice(boost_values)
+                final_damage += final_boost_amount
             else:
-                final_damage += attack_boost.amount
+                final_boost_amount = attack_boost.amount
+                final_damage += final_boost_amount
+
+            data = create_attack_boosted_report(attacking_player.id,"+",final_boost_amount,starting_value,final_damage)
+            add_to_report(data)
 
             print(attacking_player.player_dna, "attack boosted by +", attack_boost.amount, " new attack value is: ",
                   final_damage)
@@ -1370,14 +1851,19 @@ def evaluate_attack_boost(final_damage, attacking_player, active_boosts):
         if attack_boost.action_type == "x":
             base_attack = final_damage
             final_damage *= attack_boost.amount
-            print(attacking_player.player_dna, "boosted base attack of", base_attack, "by x", attack_boost.amount,
+
+            data = create_attack_boosted_report(attacking_player.id, "x", attack_boost.amount, starting_value,
+                                                final_damage)
+            add_to_report(data)
+
+            print(attacking_player.player_dna, "boosted base attack of", starting_value, "by x", attack_boost.amount,
                   " new attack_final_value is: ", final_damage)
             attacking_player = remove_boost_counter(attacking_player, attack_boost.unique_id)
 
     return final_damage, attacking_player
 
 
-def deal_damage(final_damage, defending_player, is_piercing):
+def deal_damage(attacking_player,final_damage, defending_player, is_piercing):
     # deal pierce damage (ignore armor)
     if is_piercing:
         defending_player.player_health -= final_damage
@@ -1389,6 +1875,10 @@ def deal_damage(final_damage, defending_player, is_piercing):
             if defending_player.player_shield >= final_damage:
                 damage_blocked = final_damage
                 defending_player.player_shield -= final_damage
+                data = create_damage_dealt_report(attacking_player.id, defending_player.id, damage_blocked, 0,
+                                                  defending_player.player_health, defending_player.player_shield)
+                add_to_report(data)
+                damages_dealt[defending_player.id] += final_damage
                 print(defending_player.player_dna, "blocked ", damage_blocked, "and  took ", 0,
                       "damage, his HP now is:",
                       defending_player.player_health, "and shield: ", defending_player.player_shield)
@@ -1397,11 +1887,18 @@ def deal_damage(final_damage, defending_player, is_piercing):
                 final_damage -= defending_player.player_shield
                 defending_player.player_shield = 0
                 defending_player.player_health -= final_damage
+                data = create_damage_dealt_report(attacking_player.id, defending_player.id, damage_blocked, final_damage,
+                                                  defending_player.player_health, defending_player.player_shield)
+                add_to_report(data)
+                damages_dealt[defending_player.id] +=final_damage
                 print(defending_player.player_dna, "blocked ", damage_blocked, "and  took ", final_damage,
                       " damage, his HP now is: ", defending_player.player_health, "and shield: ",
                       defending_player.player_shield)
         else:
             defending_player.player_health -= final_damage
+            data = create_damage_dealt_report(attacking_player.id,defending_player.id,0,final_damage,defending_player.player_health, defending_player.player_shield)
+            add_to_report(data)
+            damages_dealt[defending_player.id] += final_damage
             print(defending_player.player_dna, "took ", final_damage, "damage, his HP now is: ",
                   defending_player.player_health, "and shield: ", defending_player.player_shield)
 
@@ -1410,17 +1907,23 @@ def deal_damage(final_damage, defending_player, is_piercing):
 
 def determine_winner(battling_player1, battling_player2):
     if battling_player1.player_health > battling_player2.player_health:
-        return battling_player1
+
+        return battling_player1,battling_player2
     elif battling_player1.player_health < battling_player2.player_health:
-        return battling_player2
+
+        return battling_player2,battling_player1
     elif battling_player1.player_shield > battling_player2.player_shield:
-        return battling_player1
+
+        return battling_player1,battling_player2
     elif battling_player1.player_shield < battling_player2.player_shield:
-        return battling_player2
+
+        return battling_player2,battling_player1
     elif battling_player1.id>battling_player2.id:
-        return battling_player1
+
+        return battling_player1,battling_player2
     else:
-        return battling_player2
+
+        return battling_player2,battling_player1
 
 
 # this is what you run
@@ -1469,7 +1972,7 @@ def display_player_info(player):
 def transform_deck_code(deck_code):
     deck=[]
     for card_code in deck_code:
-        card=playing_cards[card_code["name"]]
+        card=playing_cards[card_code["id"]]
         deck.append(card)
     return deck
 # load decks for the players
@@ -1481,6 +1984,8 @@ def get_decks():
         player_decks.append(transform_deck_code(deck_code))
 
 
+
+
 def simulate_battle():
     get_decks()
 
@@ -1490,16 +1995,35 @@ def simulate_battle():
     #player2.generate_random_deck()
     player1_score = 0
     player2_score = 0
-    player1_dna = player1.params["dna"]
-    player2_dna = player2.params["dna"]
+    player1_id = player1.params["card_id"]
+    player2_id = player2.params["card_id"]
+    damages_dealt[player1.params["card_id"]]=0
+    damages_dealt[player2.params["card_id"]]=0
+    total_healths[player1.params["card_id"]]=0
+    total_healths[player2.params["card_id"]]=0
+
     for i in range(9):
-        round_winner = battle(player1, player2)
+        (round_winner,round_loser) = battle(player1, player2)
         print("The winner is: ", round_winner.player_dna)
-        if round_winner.player_dna == player1_dna:
+        if round_winner.id == player1_id:
             player1_score += 1
-        elif round_winner.player_dna == player2_dna:
+        elif round_winner.player_dna == player2_id:
             player2_score += 1
         print("The score is:", player1_score, "-", player2_score)
+        total_healths[round_winner.id] += round_winner.player_health
+        total_healths[round_loser.id] += round_loser.player_health
+        data = create_end_of_game_report(round_winner.id, {player1.params["card_id"]:player1_score,player2.params["card_id"]: player2_score})
+        add_to_report(data)
+    damages_deal_json={player1_id:damages_dealt[player1_id],player2_id:damages_dealt[player2_id]}
+    total_healths_json = {player1_id:total_healths[player1_id], player2_id:total_healths[player2_id]}
+    data= create_end_of_series_report(player1.params["card_id"],damages_deal_json,total_healths_json,{player1.params["card_id"]:player1_score,player2.params["card_id"]: player2_score})
+    add_to_report(data)
+    damages_dealt.clear()
+    total_healths.clear()
+    with open ('report.json', 'a') as outfile :
+        outfile.truncate(0)
+        outfile.write(json.dumps(series_report))
+
 
 
 get_ether_cards()
@@ -1508,4 +2032,5 @@ player2 = Player(battling_ether_cards[1], layers, combos, playing_cards)
 
 display_player_info(player1)
 display_player_info(player2)
-simulate_battle()
+for i in range (1):
+    simulate_battle()
