@@ -1,0 +1,1 @@
+place the character json files in this folder
