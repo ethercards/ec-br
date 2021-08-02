@@ -1510,7 +1510,7 @@ def apply_shield_combo_effect(active_player, shield_combo_effect):
     if shield_combo_effect.action_type == "+":
         shield_possible_values = []
         if shield_combo_effect.min_amount != shield_combo_effect.max_amount:
-            for value in range(shield_combo_effect.min_amount, shield_combo_effect.max_amount):
+            for value in range(shield_combo_effect.min_amount, shield_combo_effect.max_amount+1):
                 shield_possible_values.append(value)
             final_shield_value = random.choice(shield_possible_values)
         else:
@@ -1530,7 +1530,7 @@ def apply_life_combo_effect(active_player, life_combo_effect):
     if life_combo_effect.action_type == "+":
         life_possible_values = []
         if life_combo_effect.min_amount != life_combo_effect.max_amount:
-            for value in range(life_combo_effect.min_amount, life_combo_effect.max_amount):
+            for value in range(life_combo_effect.min_amount, life_combo_effect.max_amount+1):
                 life_possible_values.append(value)
             final_life_value = random.choice(life_possible_values)
         else:
@@ -1567,7 +1567,7 @@ def evaluate_life_card(active_player,card_to_play,life_boosts):
     if min_life_value == max_life_value:
         final_life_value = min_life_value
     else:
-        for life_value in range(min_life_value, max_life_value):
+        for life_value in range(min_life_value, max_life_value+1):
             random_life_array.append(life_value)
         final_life_value = random.choice(random_life_array)
 
@@ -1600,7 +1600,7 @@ def evaluate_shield_card(active_player,card_to_play,shield_boosts):
     if min_shield_value == max_shield_value:
         final_shield_value = min_shield_value
     else:
-        for shield_value in range(min_shield_value, max_shield_value):
+        for shield_value in range(min_shield_value, max_shield_value+1):
             random_shield_array.append(shield_value)
         final_shield_value = random.choice(random_shield_array)
 
@@ -1651,7 +1651,7 @@ def evaluate_shield_boost(final_value, active_player, active_shield_boosts):
         if shield_boost.action_type == "+":
             if shield_boost.extra is not None and shield_boost.amount == shield_boost.extra:
                 boost_values=[]
-                for number in range(shield_boost.amount, shield_boost.extra):
+                for number in range(shield_boost.amount, shield_boost.extra+1):
                     boost_values.append(number)
                     final_boost_amount=random.choice(boost_values)
                 final_value += final_boost_amount
@@ -1715,7 +1715,7 @@ def apply_attack_combo_effect(attacking_player,defending_player, attack_combo_ef
     if attack_combo_effect.action_type == "+":
         attack_possible_values = []
         if attack_combo_effect.min_amount != attack_combo_effect.max_amount:
-            for value in range(attack_combo_effect.min_amount, attack_combo_effect.max_amount):
+            for value in range(attack_combo_effect.min_amount, attack_combo_effect.max_amount+1):
                 attack_possible_values.append(value)
             final_attack_value = random.choice(attack_possible_values)
         else:
@@ -1793,7 +1793,7 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
         is_crit=1
     else:
         random_array = [0] * 100
-        for i in range(attacking_player_crit_ratio):
+        for i in range(attacking_player_crit_ratio+1):
             random_array[i] = 1
         is_crit = random.choice(random_array)
         if is_crit:
@@ -1805,7 +1805,7 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
             if min_attack_damage == max_attack_damage:
                 final_damage=min_attack_damage
             else:
-                for d in range(min_attack_damage, max_attack_damage):
+                for d in range(min_attack_damage, max_attack_damage+1):
                     damage_array.append(d)
                 final_damage = random.choice(damage_array)
             print(attacking_player.player_dna, "The final damage value is:", final_damage)
@@ -1827,7 +1827,7 @@ def evaluate_attack_boost(final_damage, attacking_player, active_boosts):
         if attack_boost.action_type == "+":
             if attack_boost.extra is not None and attack_boost.amount == attack_boost.extra:
                 boost_values = []
-                for number in range(attack_boost.amount, attack_boost.extra):
+                for number in range(attack_boost.amount, attack_boost.extra+1):
                     boost_values.append(number)
                     final_boost_amount=random.choice(boost_values)
                 final_damage += final_boost_amount
