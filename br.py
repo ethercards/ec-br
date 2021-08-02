@@ -1994,13 +1994,13 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
     display_player_info(player1)
     display_player_info(player2)
 
-    player1_deck = get_deck(player1_id)
-    player2_deck = get_deck(player2_id)
+    #player1_deck = get_deck(player1_id)
+    #player2_deck = get_deck(player2_id)
 
-    player1.validate_and_assign_deck(player1_deck)
-    #player1.generate_random_deck()
-    player2.validate_and_assign_deck(player2_deck)
-    #player2.generate_random_deck()
+    #player1.validate_and_assign_deck(player1_deck)
+    player1.generate_random_deck()
+    #player2.validate_and_assign_deck(player2_deck)
+    player2.generate_random_deck()
     player1_score = 0
     player2_score = 0
     player1_id = player1.params["card_id"]
