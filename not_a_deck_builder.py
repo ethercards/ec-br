@@ -4,6 +4,7 @@ from collections import OrderedDict
 import json
 
 
+
 rules_filename = "deckfight2.xlsx"
 
 
