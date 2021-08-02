@@ -6,10 +6,13 @@ import uuid
 import random
 import jsonpickle
 import copy
+import os
 
 rules_filename = "deckfight2.xlsx"
 cards_filename = "cards.json"
-players_info_filename="players.json"
+report_folder_path="reports"
+players_folder_path='players_info'
+
 
 # keywords for crating the report
 # region
@@ -62,7 +65,8 @@ class Player:
         dna = (card_data["layer_image"].split("/")[-1]).split(".")[0]
         self.params["dna"] = dna
         self.params["card_id"] = card_data["id"]
-
+        if dna[0:2] == '04' or dna[0:2] == '004':
+            print("goccha")
         self.params["health"] = int(layers[("0" + dna[0:2])]["value"])
 
         self.params["deck_limit"] = int(layers[("1" + dna[2:4])]["value"])
@@ -103,9 +107,10 @@ class Player:
         print("Generated random deck for player:",self.params["card_id"],"deck size:",len(deck),"deck cost:",deck_cost)
         return deck
 
-    def validate_and_assign_deck(self,deck):
+    def validate_and_assign_deck(self,deck_submitted):
         deck_cost=0
-        for card in deck:
+        deck=[]
+        for card in deck_submitted:
             if card["character_type"] != self.params["character_type"]:
                 self.params["deck"]=[]
                 print(self.params["card_id"])
@@ -113,6 +118,7 @@ class Player:
                       "does not match player character_type of", self.params["character_type"])
                 return []
             else:
+                deck.append(copy.deepcopy(card))
                 deck_cost+=card["cost"]
 
         if deck_cost > 300:
@@ -170,13 +176,7 @@ class Debuff:
         if "card_count" in neutralizer_card:
             self.card_count = int(neutralizer_card["card_count"])
 
-    def toJSON(self):
-        if self.special_debuff is not None:
-            self.special_debuff.toJSON()
-        if self.card_value_reducer_debuff is not None:
-            self.card_value_reducer_debuff.toJSON()
-        return json.dumps(self, default=lambda o: o.__dict__,
-                          sort_keys=True, indent=4)
+
     def reduce_card_count(self):
         self.card_count -= 1
         if self.special_debuff is not None:
@@ -211,9 +211,7 @@ class SpecialDebuff:
         if "card_count" in neutralizer_card:
             self.card_count= int(neutralizer_card["card_count"])
 
-    def toJSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__,
-                      sort_keys=True, indent=4)
+
     def reduce_card_timer(self):
         self.card_timing-=1
 
@@ -244,9 +242,7 @@ class CardValueReducerDebuff:
         if "crit" in neutralizer_card:
             self.action = neutralizer_card["crit"]["action"]
             self.amount = neutralizer_card["crit"]["amount"]
-    def toJSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__,
-                      sort_keys=True, indent=4)
+
 
     def reduce_card_timer(self):
         self.card_timing -= 1
@@ -618,7 +614,6 @@ def load_combos(sheet):
                 combo["life"]["extra"] = int(c["life_extra"])
 
         # crit
-        print(c)
         if c["crit_action"] is not None:
             combo["crit"] = {
                 "action": c["crit_action"],
@@ -921,18 +916,19 @@ def create_beginning_of_round_report(round_counter,battling_player1,battling_pla
     return  data
 
 
-def create_end_of_game_report(winner_id, score):
+def create_end_of_game_report(winner_id, loser_id):
     data={
         keyword:end_of_game_report_keyword,
         "winner_id": winner_id,
-        "score" : score
+        "loser_id" : loser_id
     }
     return  data
 
-def create_end_of_series_report(winner_id, total_damages_dealt, final_hps,score):
+def create_end_of_series_report(winner_id, loser_id,total_damages_dealt, final_hps,score):
     data={
         keyword:end_of_series_report_keyword,
         "winner_id":winner_id,
+        "loser_id": loser_id,
         "total_damages_dealt":total_damages_dealt,
         "final_hps":final_hps,
         "score":score
@@ -1388,7 +1384,7 @@ def evaluate_combo_level_n(n, battling_player):
                 print(battling_player.player_dna,"found a level",n, "combo: ", combo_string, ". adding boost to player")
                 if combo["target_type"] == "combo":
                     boost = Boost(combo)
-                    data = create_boost_applied_report(battling_player.id,boost)
+                    data = create_boost_applied_report(battling_player.id,combo)
                     add_to_report(data)
                     battling_player.active_boosts.append(boost)
                 else:
@@ -1878,7 +1874,7 @@ def deal_damage(attacking_player,final_damage, defending_player, is_piercing):
                 data = create_damage_dealt_report(attacking_player.id, defending_player.id, damage_blocked, 0,
                                                   defending_player.player_health, defending_player.player_shield)
                 add_to_report(data)
-                damages_dealt[defending_player.id] += final_damage
+                damages_dealt[attacking_player.id] += final_damage
                 print(defending_player.player_dna, "blocked ", damage_blocked, "and  took ", 0,
                       "damage, his HP now is:",
                       defending_player.player_health, "and shield: ", defending_player.player_shield)
@@ -1890,7 +1886,7 @@ def deal_damage(attacking_player,final_damage, defending_player, is_piercing):
                 data = create_damage_dealt_report(attacking_player.id, defending_player.id, damage_blocked, final_damage,
                                                   defending_player.player_health, defending_player.player_shield)
                 add_to_report(data)
-                damages_dealt[defending_player.id] +=final_damage
+                damages_dealt[attacking_player.id] +=final_damage
                 print(defending_player.player_dna, "blocked ", damage_blocked, "and  took ", final_damage,
                       " damage, his HP now is: ", defending_player.player_health, "and shield: ",
                       defending_player.player_shield)
@@ -1898,7 +1894,7 @@ def deal_damage(attacking_player,final_damage, defending_player, is_piercing):
             defending_player.player_health -= final_damage
             data = create_damage_dealt_report(attacking_player.id,defending_player.id,0,final_damage,defending_player.player_health, defending_player.player_shield)
             add_to_report(data)
-            damages_dealt[defending_player.id] += final_damage
+            damages_dealt[attacking_player.id] += final_damage
             print(defending_player.player_dna, "took ", final_damage, "damage, his HP now is: ",
                   defending_player.player_health, "and shield: ", defending_player.player_shield)
 
@@ -1932,29 +1928,12 @@ layers = load_layers(workbook["layers"])
 
 playing_cards = load_cards(workbook["cards"])
 combos = load_combos(workbook["combos"])
-battling_ether_cards=[]
 player_decks=[]
 # load cards
 with open(cards_filename, encoding='utf-8') as json_file:
     ether_cards = json.load(json_file)
+    json_file.close()
 
-with open(players_info_filename, encoding='utf-8') as json_file:
-    players_info = json.load(json_file)
-
-
-def find_ether_card(id):
-    for ec in ether_cards:
-        if ec["id"] == id:
-            return ec
-    return "Not found"
-
-# assign the stats from cards.json to the players
-def get_ether_cards():
-    for player_info in players_info:
-        player_id=player_info["id"]
-        ether_card=find_ether_card(player_id)
-        if ether_card != "Not fund":
-            battling_ether_cards.append(ether_card)
 
 def display_player_info(player):
         print("-------------------------------------------------")
@@ -1969,29 +1948,58 @@ def display_player_info(player):
 
         print("-------------------------------------------------")
 
+
+def find_ether_card(id):
+    for ec in ether_cards:
+        if ec["id"] == id:
+            return ec
+    return "Not found"
+
+
+# assign the stats from cards.json to the players
+def get_ether_card(id):
+    ether_card=find_ether_card(id)
+    if ether_card != "Not fund":
+        return ether_card
+
+
 def transform_deck_code(deck_code):
     deck=[]
     for card_code in deck_code:
         card=playing_cards[card_code["id"]]
         deck.append(card)
     return deck
-# load decks for the players
 
 
-def get_decks():
-    for player_info in players_info:
-        deck_code=player_info["deck"]
-        player_decks.append(transform_deck_code(deck_code))
+def get_deck(id):
+
+    filename = str(id)+".json"
+    full_path= os.path.join(players_folder_path,filename)
+    with open(full_path, encoding='utf-8') as json_file:
+        player_data = json.load(json_file)
+        json_file.close()
+    deck_code= player_data["deck"]
+    return transform_deck_code(deck_code)
 
 
+def simulate_battle(match_unique_id,player1_id,player2_id):
 
+    # TODO JUST FOR TESTING
+    ether_card1=get_ether_card(player1_id)
+    ether_card2=get_ether_card(player2_id)
 
-def simulate_battle():
-    get_decks()
+    player1 = Player(ether_card1, layers, combos, playing_cards)
+    player2 = Player(ether_card2, layers, combos, playing_cards)
 
-    player1.validate_and_assign_deck(player_decks[0])
+    display_player_info(player1)
+    display_player_info(player2)
+
+    player1_deck = get_deck(player1_id)
+    player2_deck = get_deck(player2_id)
+
+    player1.validate_and_assign_deck(player1_deck)
     #player1.generate_random_deck()
-    player2.validate_and_assign_deck(player_decks[1])
+    player2.validate_and_assign_deck(player2_deck)
     #player2.generate_random_deck()
     player1_score = 0
     player2_score = 0
@@ -2007,30 +2015,38 @@ def simulate_battle():
         print("The winner is: ", round_winner.player_dna)
         if round_winner.id == player1_id:
             player1_score += 1
-        elif round_winner.player_dna == player2_id:
+        elif round_winner.id == player2_id:
             player2_score += 1
         print("The score is:", player1_score, "-", player2_score)
         total_healths[round_winner.id] += round_winner.player_health
         total_healths[round_loser.id] += round_loser.player_health
-        data = create_end_of_game_report(round_winner.id, {player1.params["card_id"]:player1_score,player2.params["card_id"]: player2_score})
+        data = create_end_of_game_report(round_winner.id, round_loser.id)
         add_to_report(data)
-    damages_deal_json={player1_id:damages_dealt[player1_id],player2_id:damages_dealt[player2_id]}
+    damages_dealt_json={player1_id:damages_dealt[player1_id],player2_id:damages_dealt[player2_id]}
     total_healths_json = {player1_id:total_healths[player1_id], player2_id:total_healths[player2_id]}
-    data= create_end_of_series_report(player1.params["card_id"],damages_deal_json,total_healths_json,{player1.params["card_id"]:player1_score,player2.params["card_id"]: player2_score})
+    if player1_score> player2_score:
+        data= create_end_of_series_report(player1.params["card_id"],player2.params["card_id"],damages_dealt_json,total_healths_json,
+                                       {player1.params["card_id"]:player1_score,player2.params["card_id"]: player2_score})
+    else:
+        data = create_end_of_series_report(player2.params["card_id"], player1.params["card_id"], damages_dealt_json,
+                                           total_healths_json,
+                                           {player1.params["card_id"]: player1_score,
+                                            player2.params["card_id"]: player2_score})
     add_to_report(data)
     damages_dealt.clear()
     total_healths.clear()
-    with open ('report.json', 'a') as outfile :
+
+    report_identifier=match_unique_id+"_"+str(player1_id)+"_"+str(player2_id)+".json"
+    full_path = os.path.join(report_folder_path,report_identifier)
+    last_report = copy.deepcopy(series_report[-1])
+    with open (full_path, 'a') as outfile :
         outfile.truncate(0)
         outfile.write(json.dumps(series_report))
+        series_report.clear()
+        outfile.close()
+    return last_report
 
 
-
-get_ether_cards()
-player1 = Player(battling_ether_cards[0], layers, combos, playing_cards)
-player2 = Player(battling_ether_cards[1], layers, combos, playing_cards)
-
-display_player_info(player1)
-display_player_info(player2)
 for i in range (1):
-    simulate_battle()
+    match_unique_id = str(uuid.uuid4())
+    simulate_battle(match_unique_id,1196,3430)
