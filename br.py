@@ -269,7 +269,7 @@ class ComboEffect:
         if "shield" in combo_card:
             self.shield_combo_effect = ShieldComboEffect(combo_card)
         if "life" in combo_card:
-            self.shield_combo_effect = ShieldComboEffect(combo_card)
+            self.life_combo_effect = LifeComboEffect(combo_card)
 
 
 class AttackComboEffect:
