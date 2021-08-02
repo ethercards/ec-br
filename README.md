@@ -16,13 +16,13 @@ enough data to make the games reproducable, so verifiable.
 Being only a test version you will need a python editor to see the logs of the battle, there is no 
 output file currently.
 
-To create a deck for yourself and the opponent edit the content of the players.json file. Each 
+To create a deck for yourself and the opponent, edit the content of the players.json file. Each 
 player needs to provide an ID and a deck that consists of cards.
 
 There is currently no protection against incorrect ID's so if you give a non existent one the 
 battle simulator will error out. 
 
-Please respect the rules explained in the game design doccumentation or in the video, otherwise 
+Please respect the rules explained in the game design documentation or in the video, otherwise 
 your deck will be considered invalid and you will get an empy deck.
 
 If you want to add a card to your deck you just need to set the name property to the ID of the card 
