@@ -1396,12 +1396,11 @@ def evaluate_combo_level_n(n, battling_player):
                         combo_effect = ComboEffect(combo)
                         battling_player.combo_effects.append(combo_effect)
                         data=create_effect_applied_report(battling_player.id,combo)
-                        print("hola")
                         add_to_report(data)
                     if combo["target_type"] == "card":
                         if len(check_for_combo_boosts(battling_player))>0:
                             combo,battling_player = boost_combo(combo,battling_player)
-                        # TODO the reason why we are not boo    sting these things, because they would be way to op, I have to talk about this with someone
+                        # TODO the reason why we are not boosting these things, because they would be way to op, I have to talk about this with someone
                         card_boost= Boost(combo)
                         battling_player.active_boosts.append(card_boost)
     return battling_player
@@ -1729,11 +1728,11 @@ def apply_attack_combo_effect(attacking_player,defending_player, attack_combo_ef
 
 def evaluate_attack_phase_for_player(attacking_player, defending_player, card_to_play):
     defending_player = apply_offensive_combo_effects(attacking_player, defending_player)
+    attacking_player = check_for_crit_boost(attacking_player)
 
     if card_to_play is not None:
         if card_to_play["combo_sign"] == "A":
             attacking_player, is_piercing = check_for_pierce(attacking_player)
-            attacking_player = check_for_crit_boost(attacking_player)
             attack_boosts = []
             if len(attacking_player.active_boosts) > 0:
                 for boost in attacking_player.active_boosts:
@@ -1994,13 +1993,13 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
     display_player_info(player1)
     display_player_info(player2)
 
-    #player1_deck = get_deck(player1_id)
-    #player2_deck = get_deck(player2_id)
+    player1_deck = get_deck(player1_id)
+    player2_deck = get_deck(player2_id)
 
-    #player1.validate_and_assign_deck(player1_deck)
-    player1.generate_random_deck()
-    #player2.validate_and_assign_deck(player2_deck)
-    player2.generate_random_deck()
+    player1.validate_and_assign_deck(player1_deck)
+    #player1.generate_random_deck()
+    player2.validate_and_assign_deck(player2_deck)
+    #player2.generate_random_deck()
     player1_score = 0
     player2_score = 0
     player1_id = player1.params["card_id"]
@@ -2049,4 +2048,4 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
 
 for i in range (1):
     match_unique_id = str(uuid.uuid4())
-    simulate_battle(match_unique_id,1196,3430)
+    simulate_battle(match_unique_id,1114,1948)
