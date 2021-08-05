@@ -1551,12 +1551,12 @@ def evaluate_defense_card(active_player, card_to_play, life_boosts=[], shield_bo
     # check if the card is of type shield
     if "shield" in card_to_play:
         # calculating final shield value
-       active_player = evaluate_shield_card(active_player,card_to_play,shield_boosts)
+        evaluate_shield_card(active_player,card_to_play,shield_boosts)
 
     else:
         if "life" in card_to_play:
             # calculating final life value
-            active_player = evaluate_life_card(active_player,card_to_play,life_boosts)
+            evaluate_life_card(active_player,card_to_play,life_boosts)
 
 
 def evaluate_life_card(active_player,card_to_play,life_boosts):
@@ -1575,7 +1575,7 @@ def evaluate_life_card(active_player,card_to_play,life_boosts):
     add_to_report(data)
     # evaluating life boost
     if len(life_boosts) > 0:
-        final_life_value, active_player = evaluate_life_boost(final_life_value, active_player, life_boosts)
+        final_life_value, active_player = evaluate_life_boosts(final_life_value, active_player, life_boosts)
 
     # apply life to player
     active_player.player_health += final_life_value
@@ -1607,7 +1607,7 @@ def evaluate_shield_card(active_player,card_to_play,shield_boosts):
     add_to_report(data)
     # evaluating shield boost
     if len(shield_boosts) > 0:
-        final_shield_value, active_player = evaluate_shield_boost(final_shield_value, active_player, shield_boosts)
+        final_shield_value, active_player = evaluate_shield_boosts(final_shield_value, active_player, shield_boosts)
     # apply shield to player
     active_player.player_shield += final_shield_value
     data = create_defense_applied_report(active_player.id, "shield", final_shield_value, active_player.player_health,
@@ -1618,7 +1618,7 @@ def evaluate_shield_card(active_player,card_to_play,shield_boosts):
     return  active_player
 
 
-def evaluate_life_boost(final_value, active_player, active_life_boosts):
+def evaluate_life_boosts(final_value, active_player, active_life_boosts):
     # evaluate the life boosts that add flat value
     starting_value=copy.deepcopy(final_value)
     for life_boost in active_life_boosts:
@@ -1637,11 +1637,12 @@ def evaluate_life_boost(final_value, active_player, active_life_boosts):
             add_to_report(data)
             active_player = remove_boost_counter(active_player, life_boost.unique_id)
             print("Life boosted by x", life_boost.amount, " new final_life_value is: ", final_value)
+            return final_value, active_player
 
     return final_value, active_player
 
 
-def evaluate_shield_boost(final_value, active_player, active_shield_boosts):
+def evaluate_shield_boosts(final_value, active_player, active_shield_boosts):
     # evaluate the shield boosts that add flat value
     # The reason why this is a little different than the life boosts,
     # is because there are combos that create boosts with non- flat value
@@ -1673,6 +1674,7 @@ def evaluate_shield_boost(final_value, active_player, active_shield_boosts):
             add_to_report(data)
             print("Shield boosted by x", shield_boost.amount, " new final_shield_value is: ", final_value)
             active_player = remove_boost_counter(active_player, shield_boost.unique_id)
+            return final_value, active_player
 
     return final_value, active_player
 
@@ -1814,12 +1816,12 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
     add_to_report(data)
     # evaluating attack boost
     if len(active_boosts) > 0:
-        final_damage, attacking_player = evaluate_attack_boost(final_damage, attacking_player, active_boosts)
+        final_damage, attacking_player = evaluate_attack_boosts(final_damage, attacking_player, active_boosts)
 
     defending_player = deal_damage(attacking_player,final_damage, defending_player, is_piercing)
 
 
-def evaluate_attack_boost(final_damage, attacking_player, active_boosts):
+def evaluate_attack_boosts(final_damage, attacking_player, active_boosts):
     # evaluate flat bonus damage
     starting_value=copy.deepcopy(final_damage)
     for attack_boost in active_boosts:
@@ -1844,7 +1846,6 @@ def evaluate_attack_boost(final_damage, attacking_player, active_boosts):
     # evaluate multiplayer bonus damage
     for attack_boost in active_boosts:
         if attack_boost.action_type == "x":
-            base_attack = final_damage
             final_damage *= attack_boost.amount
 
             data = create_attack_boosted_report(attacking_player.id, "x", attack_boost.amount, starting_value,
@@ -1854,6 +1855,7 @@ def evaluate_attack_boost(final_damage, attacking_player, active_boosts):
             print(attacking_player.player_dna, "boosted base attack of", starting_value, "by x", attack_boost.amount,
                   " new attack_final_value is: ", final_damage)
             attacking_player = remove_boost_counter(attacking_player, attack_boost.unique_id)
+            return final_damage, attacking_player
 
     return final_damage, attacking_player
 
@@ -1902,7 +1904,6 @@ def deal_damage(attacking_player,final_damage, defending_player, is_piercing):
 
 def determine_winner(battling_player1, battling_player2):
     if battling_player1.player_health > battling_player2.player_health:
-
         return battling_player1,battling_player2
     elif battling_player1.player_health < battling_player2.player_health:
 
@@ -2048,4 +2049,4 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
 
 for i in range (1):
     match_unique_id = str(uuid.uuid4())
-    simulate_battle(match_unique_id,1114,1948)
+    simulate_battle(match_unique_id,4660,9999)
