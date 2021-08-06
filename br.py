@@ -7,10 +7,13 @@ import random
 import jsonpickle
 import copy
 import os
+import sys
+
 
 rules_filename = "deckfight2.xlsx"
 cards_filename = "cards.json"
 report_folder_path="reports"
+log_reports_folder_path = "log_reports"
 players_folder_path='players_info'
 
 
@@ -1207,23 +1210,23 @@ def apply_card_reducer_debuff_on_boost_card_with_parameter(defending_player,card
 
 def apply_card_reducer_debuff_on_non_boost_card_with_parameter(defending_player,card_value_reducer_debuff,card_played,parameter):
     min_value = card_played[parameter]["amount"]
-    if parameter != "crit":
+    if "extra" in card_played[parameter]:
         max_value = card_played[parameter]["extra"]
     action_type = card_played[parameter]["action"]
     if card_value_reducer_debuff.action == "=":
         card_played[parameter]["amount"] = card_value_reducer_debuff.amount
-        if parameter != "crit":
+        if "extra" in card_played[parameter]:
             card_played[parameter]["extra"] = card_value_reducer_debuff.amount
     if card_value_reducer_debuff.action == "-":
         card_played[parameter]["amount"] -= card_value_reducer_debuff.amount
-        if parameter != "crit":
+        if "extra" in card_played[parameter]:
             card_played[parameter]["extra"] -= card_value_reducer_debuff.amount
         if card_played[parameter]["amount"] < 0:
             card_played[parameter]["amount"] = 0
         if card_played[parameter]["extra"] < 0:
-            if parameter != "crit":
+            if "extra" in card_played[parameter]:
                 card_played[parameter]["extra"] = 0
-    if parameter != "crit":
+    if "extra" in card_played[parameter]:
         old_values=min_value, "-",max_value
         new_values=card_played[parameter]["amount"], "-", card_played[parameter]["extra"]
         data = create_card_reducer_debuff_effect_activated_report(defending_player.id, parameter, card_value_reducer_debuff.action,
@@ -1401,6 +1404,8 @@ def evaluate_combo_level_n(n, battling_player):
                         if len(check_for_combo_boosts(battling_player))>0:
                             combo,battling_player = boost_combo(combo,battling_player)
                         # TODO the reason why we are not boosting these things, because they would be way to op, I have to talk about this with someone
+                        data = create_boost_applied_report(battling_player.id, combo)
+                        add_to_report(data)
                         card_boost= Boost(combo)
                         battling_player.active_boosts.append(card_boost)
     return battling_player
@@ -1428,12 +1433,11 @@ def boost_combo(combo,battling_player):
 def boost_combo_with_parameter(combo,first_boost,battling_player,parameter):
     # todo + type boost not supported yet, but there was no need for it with the current cards
     min_amount = combo[parameter]["amount"]
-    if parameter != "crit":
+    if "extra" in combo[parameter]:
         max_amount = combo[parameter]["extra"]
-    combo[parameter]["amount"] *= first_boost.combo_boost.amount
-    if parameter != "crit":
         combo[parameter]["extra"] *= first_boost.combo_boost.amount
-    if parameter != "crit":
+    combo[parameter]["amount"] *= first_boost.combo_boost.amount
+    if "extra" in combo[parameter]:
         old_values= min_amount,"-",max_amount
         new_values=combo[parameter]["amount"], "-", combo[parameter]["extra"]
         data= create_combo_boosted_report(battling_player.id,parameter,"x",old_values,new_values,first_boost.combo_boost.amount)
@@ -1983,6 +1987,11 @@ def get_deck(id):
 
 
 def simulate_battle(match_unique_id,player1_id,player2_id):
+    #old_stdout = sys.stdout
+    #log_report_identifier=match_unique_id+"_"+str(player1_id)+"_"+str(player2_id)+".log"
+    #full_path = os.path.join(log_reports_folder_path, log_report_identifier)
+    #log_file = open(full_path, "w")
+    #sys.stdout = log_file
 
     # TODO JUST FOR TESTING
     ether_card1=get_ether_card(player1_id)
@@ -2044,9 +2053,12 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
         outfile.write(json.dumps(series_report))
         series_report.clear()
         outfile.close()
+
+    #sys.stdout = old_stdout
+    #log_file.close()
     return last_report
 
 
 for i in range (1):
     match_unique_id = str(uuid.uuid4())
-    simulate_battle(match_unique_id,4660,9999)
+    simulate_battle(match_unique_id,311 ,4660)
