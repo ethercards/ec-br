@@ -1239,8 +1239,9 @@ def apply_card_reducer_debuff_on_non_boost_card_with_parameter(defending_player,
               max_value,
               "to", card_played[parameter]["amount"], "-", card_played[parameter]["extra"])
     else:
+        new_values = card_played[parameter]["amount"]
         data = create_card_reducer_debuff_effect_activated_report(defending_player.id, parameter, action_type,
-                                                                  min_value, new_value,
+                                                                  min_value, new_values,
                                                                   card_value_reducer_debuff.amount)
         add_to_report(data)
         print(defending_player.player_dna, "card reducer debuff applied on", parameter, "card, from", card_value_reducer_debuff.action,
