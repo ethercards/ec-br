@@ -124,7 +124,7 @@ playing_cards = load_cards(workbook["cards"])
 
 character_type = 0
 
-deck_limit = 22
+deck_limit = 24
 
 
 

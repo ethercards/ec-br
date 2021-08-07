@@ -1,0 +1,10 @@
+Log repots can be displayed here by uncommenting at the beggining of simulate battle:
+#old_stdout = sys.stdout
+#log_report_identifier=match_unique_id+"_"+str(player1_id)+"_"+str(player2_id)+".log"
+#full_path = os.path.join(log_reports_folder_path, log_report_identifier)
+#log_file = open(full_path, "w")
+#sys.stdout = log_file
+
+and at the end of it:
+#sys.stdout = old_stdout
+#log_file.close()
