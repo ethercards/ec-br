@@ -1815,7 +1815,6 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
     else:
         random_array = [0] * 100
         for i in range(attacking_player_crit_ratio):
-
             random_array[i] = 1
         is_crit = random.choice(random_array)
     if min_attack_damage == max_attack_damage:
@@ -1827,11 +1826,8 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
         print("Damage randomed:" + str(final_damage))
     attack_damage=copy.deepcopy(final_damage)
     if is_crit:
-        crit_damage=crit_damage_ranges.get(final_damage)
-        final_damage += crit_damage
-        print(attacking_player.player_dna, "Hit a critical attack, adding bonus damage of +",crit_damage)
-
-    print(attacking_player.player_dna, "The final damage value is:", final_damage)
+        crit_damage = crit_damage_ranges.get(final_damage)
+        print(attacking_player.player_dna, "Hit a critical attack, adding bonus damage of +", crit_damage)
 
     data = create_attack_played_report(attacking_player.id, min_attack_damage, max_attack_damage, attack_damage,
                                        attacking_player_crit_ratio, is_crit,crit_damage, final_damage)
@@ -1839,6 +1835,9 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
     # evaluating attack boost
     if len(active_boosts) > 0:
         final_damage, attacking_player = evaluate_attack_boosts(final_damage, attacking_player, active_boosts)
+
+    final_damage += crit_damage
+    print(attacking_player.player_dna, "The final damage value is:", final_damage)
 
     defending_player = deal_damage(attacking_player,final_damage, defending_player, is_piercing)
 
@@ -2087,4 +2086,4 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
 
 for i in range (1):
     match_unique_id = str(uuid.uuid4())
-    simulate_battle(match_unique_id,188 ,1234)
+    simulate_battle(match_unique_id,2098 ,1234)
