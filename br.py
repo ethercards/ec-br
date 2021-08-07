@@ -855,14 +855,16 @@ def create_crit_boosted(attacking_player_id,action_type, amount, old_value, new_
     return data
 
 
-def create_attack_played_report(attacking_player_id, min_attack, max_attack, crit_chance, was_crit, final_damage):
+def create_attack_played_report(attacking_player_id, min_attack, max_attack,attack_damage, crit_chance, was_crit, crit_damage, final_damage):
     data = {
         keyword: attack_played_keyword,
         "attacking_player_id": attacking_player_id,
         "min_attack": min_attack,
         "max_attack": max_attack,
         "crit_chance": crit_chance,
+        "attack_damage":attack_damage,
         "was_crit":was_crit,
+        "crit_damage":crit_damage,
         "final_damage": final_damage
     }
 
@@ -1111,7 +1113,7 @@ def evaluate_neutralizer_card(attacking_player,card_to_play, defending_player):
 
 
 def apply_neutralizer_debuffs(defending_player,defending_card_to_play):
-    # todo nezzuk ezt meg at Szilagyival
+
     if defending_card_to_play is not None :
         if len(defending_player.debuffs) > 0:
             for debuff in defending_player.debuffs:
@@ -1801,6 +1803,7 @@ def check_for_crit_boost(attacking_player):
 
 def evaluate_attack_card(attacking_player, defending_player, card_to_play, attacking_player_crit_ratio, is_piercing,
                          active_boosts=[]):
+    crit_damage=0
     # calculating the final damage based on crit ration and attack range
     min_attack_damage = card_to_play["attack"]["amount"]
     max_attack_damage = card_to_play["attack"]["extra"]
@@ -1811,7 +1814,8 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
         is_crit = True
     else:
         random_array = [0] * 100
-        for i in range(attacking_player_crit_ratio+1):
+        for i in range(attacking_player_crit_ratio):
+
             random_array[i] = 1
         is_crit = random.choice(random_array)
     if min_attack_damage == max_attack_damage:
@@ -1820,12 +1824,17 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
         for d in range(min_attack_damage, max_attack_damage + 1):
             damage_array.append(d)
         final_damage = random.choice(damage_array)
+        print("Damage randomed:" + str(final_damage))
+    attack_damage=copy.deepcopy(final_damage)
     if is_crit:
-        final_damage = add_crit_damage_to_final(final_damage)
+        crit_damage=crit_damage_ranges.get(final_damage)
+        final_damage += crit_damage
+        print(attacking_player.player_dna, "Hit a critical attack, adding bonus damage of +",crit_damage)
+
     print(attacking_player.player_dna, "The final damage value is:", final_damage)
 
-    data = create_attack_played_report(attacking_player.id, min_attack_damage, max_attack_damage,
-                                       attacking_player_crit_ratio, is_crit, final_damage)
+    data = create_attack_played_report(attacking_player.id, min_attack_damage, max_attack_damage, attack_damage,
+                                       attacking_player_crit_ratio, is_crit,crit_damage, final_damage)
     add_to_report(data)
     # evaluating attack boost
     if len(active_boosts) > 0:
@@ -2078,4 +2087,4 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
 
 for i in range (1):
     match_unique_id = str(uuid.uuid4())
-    simulate_battle(match_unique_id,4660 ,3428)
+    simulate_battle(match_unique_id,188 ,1234)
