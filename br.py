@@ -55,6 +55,8 @@ series_report = []
 damages_dealt={}
 total_healths={}
 
+crit_damage_ranges={0:0,1:0,2:1,3:1,4:1,5:2,6:2,7:2,8:3,9:3,10:3,11:4,12:4,13:4,14:4,15:4}
+
 class Player:
 
     def __init__(self, card_data, layers, all_combos, all_playing_cards):
@@ -1627,11 +1629,23 @@ def evaluate_life_boosts(final_value, active_player, active_life_boosts):
     starting_value=copy.deepcopy(final_value)
     for life_boost in active_life_boosts:
         if life_boost.action_type == "+":
-            final_value += life_boost.amount
-            data = create_defense_boosted_report(active_player.id, "life", life_boost.amount, "+", starting_value, final_value)
+            if life_boost.extra is not None and life_boostv.amount == life_boost.extra:
+                boost_values = []
+                for number in range(life_boost.amount, life_boost.extra + 1):
+                    boost_values.append(number)
+                    final_boost_amount = random.choice(boost_values)
+                final_value += final_boost_amount
+            else:
+                final_boost_amount = life_boost.amount
+                final_value += final_boost_amount
+
+            data = create_defense_boosted_report(active_player.id, "life", final_boost_amount, "+", starting_value,
+                                                 final_value)
             add_to_report(data)
+            print(active_player.player_dna, "life boosted by +", life_boost.amount, " new final life value is: ",
+                  final_value)
             active_player = remove_boost_counter(active_player, life_boost.unique_id)
-            print("Life boosted by +", life_boost.amount, " new final_life_value is: ", final_value)
+            break
     # evaluate the life boosts that multiply the value
     for life_boost in active_life_boosts:
         if life_boost.action_type == "x":
@@ -1669,6 +1683,7 @@ def evaluate_shield_boosts(final_value, active_player, active_shield_boosts):
             print(active_player.player_dna, "shield boosted by +", shield_boost.amount, " new final_shield_value is: ",
                   final_value)
             active_player = remove_boost_counter(active_player, shield_boost.unique_id)
+            break
     # evaluate the shield boosts that multiply the value
     for shield_boost in active_shield_boosts:
         if shield_boost.action_type == "x":
@@ -1780,7 +1795,6 @@ def check_for_crit_boost(attacking_player):
                           attacking_player.player_crit_chance)
                     attacking_player = remove_boost_counter(attacking_player, boost.crit_boost.unique_id)
 
-
     return attacking_player
 
 
@@ -1791,29 +1805,23 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
     max_attack_damage = card_to_play["attack"]["extra"]
     print(attacking_player.player_dna, "Attack card played with:", min_attack_damage, "-", max_attack_damage,
           "and crit chance:", attacking_player_crit_ratio)
+    damage_array=[]
     if attacking_player_crit_ratio == 100:
-        final_damage = max_attack_damage
-        print(attacking_player.player_dna, "Critical hit")
-        print(attacking_player.player_dna, "The final damage value is:", final_damage)
-        is_crit=1
+        is_crit = True
     else:
         random_array = [0] * 100
         for i in range(attacking_player_crit_ratio+1):
             random_array[i] = 1
         is_crit = random.choice(random_array)
-        if is_crit:
-            final_damage = max_attack_damage
-            print(attacking_player.player_dna, "Critical hit")
-            print(attacking_player.player_dna, "The final damage value is:", final_damage)
-        else:
-            damage_array = []
-            if min_attack_damage == max_attack_damage:
-                final_damage=min_attack_damage
-            else:
-                for d in range(min_attack_damage, max_attack_damage+1):
-                    damage_array.append(d)
-                final_damage = random.choice(damage_array)
-            print(attacking_player.player_dna, "The final damage value is:", final_damage)
+    if min_attack_damage == max_attack_damage:
+        final_damage = min_attack_damage
+    else:
+        for d in range(min_attack_damage, max_attack_damage + 1):
+            damage_array.append(d)
+        final_damage = random.choice(damage_array)
+    if is_crit:
+        final_damage = add_crit_damage_to_final(final_damage)
+    print(attacking_player.player_dna, "The final damage value is:", final_damage)
 
     data = create_attack_played_report(attacking_player.id, min_attack_damage, max_attack_damage,
                                        attacking_player_crit_ratio, is_crit, final_damage)
@@ -1824,6 +1832,13 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
 
     defending_player = deal_damage(attacking_player,final_damage, defending_player, is_piercing)
 
+def add_crit_damage_to_final(final_damage):
+    if final_damage>15:
+        final_damage+=5
+    else:
+        test= crit_damage_ranges.get(final_damage)
+        final_damage += test
+    return final_damage
 
 def evaluate_attack_boosts(final_damage, attacking_player, active_boosts):
     # evaluate flat bonus damage
@@ -1846,6 +1861,7 @@ def evaluate_attack_boosts(final_damage, attacking_player, active_boosts):
             print(attacking_player.player_dna, "attack boosted by +", attack_boost.amount, " new attack value is: ",
                   final_damage)
             attacking_player = remove_boost_counter(attacking_player, attack_boost.unique_id)
+            break
 
     # evaluate multiplayer bonus damage
     for attack_boost in active_boosts:
@@ -2061,4 +2077,4 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
 
 for i in range (1):
     match_unique_id = str(uuid.uuid4())
-    simulate_battle(match_unique_id,311 ,4660)
+    simulate_battle(match_unique_id,4660 ,3428)
