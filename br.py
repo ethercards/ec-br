@@ -1629,7 +1629,7 @@ def evaluate_life_boosts(final_value, active_player, active_life_boosts):
     starting_value=copy.deepcopy(final_value)
     for life_boost in active_life_boosts:
         if life_boost.action_type == "+":
-            if life_boost.extra is not None and life_boostv.amount == life_boost.extra:
+            if life_boost.extra is not None and life_boost.amount == life_boost.extra:
                 boost_values = []
                 for number in range(life_boost.amount, life_boost.extra + 1):
                     boost_values.append(number)
