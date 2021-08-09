@@ -122,9 +122,9 @@ workbook = load_workbook(filename=rules_filename)
 
 playing_cards = load_cards(workbook["cards"])
 
-character_type = 0
+character_type = 3
 
-deck_limit = 24
+deck_limit = 20
 
 
 
@@ -155,10 +155,12 @@ def try_to_add_card_to_deck(id,deck, deck_cost,combos):
         deck_cost += card["cost"]
     if deck_cost > 200:
         print("invalid deck, deck total cost to high:", deck_cost, "... the maximum allowed is 200")
+        deck_cost -= card["cost"]
         return deck,deck_cost,combos
     if len(deck) > deck_limit:
         print("invalid deck, deck has more cards than allowed:", len(deck), "... the maximum allowed is",
             deck_limit)
+        deck_cost-=card["cost"]
         return deck,deck_cost,combos
 
     deck.append({"id":id})
