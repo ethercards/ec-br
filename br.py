@@ -55,7 +55,7 @@ series_report = []
 damages_dealt={}
 total_healths={}
 
-crit_damage_ranges={0:0,1:0,2:1,3:1,4:1,5:2,6:2,7:2,8:3,9:3,10:3,11:4,12:4,13:4,14:4,15:4}
+crit_damage_ranges={0:0,1:0,2:3,3:3,4:3,5:4,6:4,7:4,8:5,9:5,10:5,11:6,12:6,13:6,14:6,15:6}
 
 class Player:
 
@@ -1389,7 +1389,7 @@ def evaluate_combo_level_n(n, battling_player):
                 battling_player.player_combo_string = ""
                 data= create_combo_found_report(battling_player.id,combo_string,n,combo)
                 add_to_report(data)
-                print(battling_player.player_dna,"found a level",n, "combo: ", combo_string, ". adding boost to player")
+                print(battling_player.player_dna,"found a l evel",n, "combo: ", combo_string, ". adding boost to player")
                 if combo["target_type"] == "combo":
                     boost = Boost(combo)
                     data = create_boost_applied_report(battling_player.id,combo)
@@ -1843,7 +1843,7 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
 
 def add_crit_damage_to_final(final_damage):
     if final_damage>15:
-        final_damage+=5
+        final_damage+=7
     else:
         test= crit_damage_ranges.get(final_damage)
         final_damage += test
@@ -2012,11 +2012,11 @@ def get_deck(id):
 
 
 def simulate_battle(match_unique_id,player1_id,player2_id):
-    #old_stdout = sys.stdout
-    #log_report_identifier=match_unique_id+"_"+str(player1_id)+"_"+str(player2_id)+".log"
-    #full_path = os.path.join(log_reports_folder_path, log_report_identifier)
-    #log_file = open(full_path, "w")
-    #sys.stdout = log_file
+    old_stdout = sys.stdout
+    log_report_identifier=match_unique_id+"_"+str(player1_id)+"_"+str(player2_id)+".log"
+    full_path = os.path.join(log_reports_folder_path, log_report_identifier)
+    log_file = open(full_path, "w")
+    sys.stdout = log_file
 
     # TODO JUST FOR TESTING
     ether_card1=get_ether_card(player1_id)
@@ -2033,8 +2033,10 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
 
     player1.validate_and_assign_deck(player1_deck)
     #player1.generate_random_deck()
+
     player2.validate_and_assign_deck(player2_deck)
     #player2.generate_random_deck()
+
     player1_score = 0
     player2_score = 0
     player1_id = player1.params["card_id"]
@@ -2079,11 +2081,11 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
         series_report.clear()
         outfile.close()
 
-    #sys.stdout = old_stdout
-    #log_file.close()
+    sys.stdout = old_stdout
+    log_file.close()
     return last_report
 
 
-for i in range (1):
-    match_unique_id = str(uuid.uuid4())
-    simulate_battle(match_unique_id,2098 ,1234)
+#for i in range (1):
+ #   match_unique_id = str(uuid.uuid4())
+  #  simulate_battle(match_unique_id,2251 ,2011)
