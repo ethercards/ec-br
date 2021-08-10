@@ -1113,7 +1113,8 @@ def evaluate_neutralizer_card(attacking_player,card_to_play, defending_player):
 
 
 def apply_neutralizer_debuffs(defending_player,defending_card_to_play):
-
+    indexes_to_remove=[]
+    counter=0
     if defending_card_to_play is not None :
         if len(defending_player.debuffs) > 0:
             for debuff in defending_player.debuffs:
@@ -1130,7 +1131,14 @@ def apply_neutralizer_debuffs(defending_player,defending_card_to_play):
                             apply_combo_sign_cancel(defending_player)
                     if debuff.card_value_reducer_debuff is not None and debuff.card_count>0:
                         apply_card_reducer_debuff(defending_player,debuff.card_value_reducer_debuff,defending_card_to_play)
-                    remove_debuff_counter(defending_player,debuff.uuid)
+                    debuff_to_remove_index=remove_debuff_counter(defending_player,debuff.uuid)
+                    if debuff_to_remove_index is not None:
+                        indexes_to_remove.append(debuff_to_remove_index)
+            for debuff_to_remove_index in indexes_to_remove:
+                defending_player.debuffs.pop(debuff_to_remove_index+counter)
+                counter -=1
+
+
     return defending_player,defending_card_to_play
 
 
@@ -1151,10 +1159,7 @@ def remove_debuff_counter(defending_player,debuff_uuid):
                 print("debuff with id:", defending_player.debuffs[index].neutralizer_card, "has more than 1 charge, removing 1 from it, new charges left:",
                       defending_player.debuffs[index].card_count)
 
-    if debuff_to_remove_index is not None:
-        defending_player.debuffs.pop(debuff_to_remove_index)
-
-    return defending_player
+    return debuff_to_remove_index
 
 
 def apply_card_reducer_debuff(defending_player, card_value_reducer_debuff, card_played):
@@ -2053,7 +2058,8 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
             player1_score += 1
         elif round_winner.id == player2_id:
             player2_score += 1
-        print("The score is:", player1_score, "-", player2_score)
+        print("END OF GAME RESULT:")
+        print("The score is:",player1_id, player1_score, "-", player2_score,player2_id)
         total_healths[round_winner.id] += round_winner.player_health
         total_healths[round_loser.id] += round_loser.player_health
         data = create_end_of_game_report(round_winner.id, round_loser.id)
@@ -2086,6 +2092,6 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
     return last_report
 
 
-#for i in range (1):
- #   match_unique_id = str(uuid.uuid4())
-  #  simulate_battle(match_unique_id,2251 ,2011)
+for i in range (1):
+    match_unique_id = str(uuid.uuid4())
+    simulate_battle(match_unique_id,513 ,3272)
