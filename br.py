@@ -126,7 +126,7 @@ class Player:
                 deck.append(copy.deepcopy(card))
                 deck_cost+=card["cost"]
 
-        if deck_cost > 300:
+        if deck_cost > 200:
             self.params["deck"] = []
             print(self.params["card_id"])
             print("invalid deck, deck total cost to high:", deck_cost, "... the maximum allowed is 200")
