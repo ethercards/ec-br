@@ -1395,6 +1395,7 @@ def evaluate_combo_level_n(n, battling_player):
                 data= create_combo_found_report(battling_player.id,combo_string,n,combo)
                 add_to_report(data)
                 print(battling_player.player_dna,"found a l evel",n, "combo: ", combo_string, ". adding boost to player")
+                print(combo)
                 if combo["target_type"] == "combo":
                     boost = Boost(combo)
                     data = create_boost_applied_report(battling_player.id,combo)
@@ -1637,11 +1638,12 @@ def evaluate_life_boosts(final_value, active_player, active_life_boosts):
     starting_value=copy.deepcopy(final_value)
     for life_boost in active_life_boosts:
         if life_boost.action_type == "+":
-            if life_boost.extra is not None and life_boost.amount == life_boost.extra:
+            if life_boost.extra is not None and life_boost.amount != life_boost.extra:
                 boost_values = []
                 for number in range(life_boost.amount, life_boost.extra + 1):
                     boost_values.append(number)
-                    final_boost_amount = random.choice(boost_values)
+
+                final_boost_amount = random.choice(boost_values)
                 final_value += final_boost_amount
             else:
                 final_boost_amount = life_boost.amount
@@ -1675,11 +1677,12 @@ def evaluate_shield_boosts(final_value, active_player, active_shield_boosts):
     starting_value= copy.deepcopy(final_value)
     for shield_boost in active_shield_boosts:
         if shield_boost.action_type == "+":
-            if shield_boost.extra is not None and shield_boost.amount == shield_boost.extra:
+            if shield_boost.extra is not None and shield_boost.amount != shield_boost.extra:
                 boost_values=[]
                 for number in range(shield_boost.amount, shield_boost.extra+1):
                     boost_values.append(number)
-                    final_boost_amount=random.choice(boost_values)
+
+                final_boost_amount=random.choice(boost_values)
                 final_value += final_boost_amount
             else:
                 final_boost_amount=shield_boost.amount
@@ -1859,11 +1862,12 @@ def evaluate_attack_boosts(final_damage, attacking_player, active_boosts):
     starting_value=copy.deepcopy(final_damage)
     for attack_boost in active_boosts:
         if attack_boost.action_type == "+":
-            if attack_boost.extra is not None and attack_boost.amount == attack_boost.extra:
+            if attack_boost.extra is not None and attack_boost.amount != attack_boost.extra:
                 boost_values = []
                 for number in range(attack_boost.amount, attack_boost.extra+1):
                     boost_values.append(number)
-                    final_boost_amount=random.choice(boost_values)
+
+                final_boost_amount = random.choice(boost_values)
                 final_damage += final_boost_amount
             else:
                 final_boost_amount = attack_boost.amount
@@ -1875,7 +1879,6 @@ def evaluate_attack_boosts(final_damage, attacking_player, active_boosts):
             print(attacking_player.player_dna, "attack boosted by +", attack_boost.amount, " new attack value is: ",
                   final_damage)
             attacking_player = remove_boost_counter(attacking_player, attack_boost.unique_id)
-            break
 
     # evaluate multiplayer bonus damage
     for attack_boost in active_boosts:
@@ -2092,6 +2095,6 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
     return last_report
 
 
-for i in range (1):
-    match_unique_id = str(uuid.uuid4())
-    simulate_battle(match_unique_id,513 ,3272)
+#for i in range (1):
+    #match_unique_id = str(uuid.uuid4())
+    #simulate_battle(match_unique_id,513 ,3272)
