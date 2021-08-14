@@ -1642,7 +1642,8 @@ def evaluate_life_boosts(final_value, active_player, active_life_boosts):
                 boost_values = []
                 for number in range(life_boost.amount, life_boost.extra + 1):
                     boost_values.append(number)
-                    final_boost_amount = random.choice(boost_values)
+
+                final_boost_amount = random.choice(boost_values)
                 final_value += final_boost_amount
             else:
                 final_boost_amount = life_boost.amount
@@ -1680,7 +1681,8 @@ def evaluate_shield_boosts(final_value, active_player, active_shield_boosts):
                 boost_values=[]
                 for number in range(shield_boost.amount, shield_boost.extra+1):
                     boost_values.append(number)
-                    final_boost_amount=random.choice(boost_values)
+
+                final_boost_amount=random.choice(boost_values)
                 final_value += final_boost_amount
             else:
                 final_boost_amount=shield_boost.amount
@@ -1864,7 +1866,8 @@ def evaluate_attack_boosts(final_damage, attacking_player, active_boosts):
                 boost_values = []
                 for number in range(attack_boost.amount, attack_boost.extra+1):
                     boost_values.append(number)
-                    final_boost_amount=random.choice(boost_values)
+
+                final_boost_amount = random.choice(boost_values)
                 final_damage += final_boost_amount
             else:
                 final_boost_amount = attack_boost.amount
