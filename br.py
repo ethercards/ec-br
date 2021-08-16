@@ -57,6 +57,7 @@ total_healths={}
 
 crit_damage_ranges={0:0,1:0,2:3,3:3,4:3,5:4,6:4,7:4,8:5,9:5,10:5,11:6,12:6,13:6,14:6,15:6}
 
+
 class Player:
 
     def __init__(self, card_data, layers, all_combos, all_playing_cards):
@@ -115,6 +116,7 @@ class Player:
     def validate_and_assign_deck(self,deck_submitted):
         deck_cost=0
         deck=[]
+        card_counters = [0] * 100
         for card in deck_submitted:
             if card["character_type"] != self.params["character_type"]:
                 self.params["deck"]=[]
@@ -122,7 +124,14 @@ class Player:
                 print("Invalid card in deck. The card character_type of:",card["character_type"],
                       "does not match player character_type of", self.params["character_type"])
                 return []
+            elif card_counters[card["id"]] >=3:
+                self.params["deck"] = []
+                print(self.params["card_id"])
+                print("Invalid card in deck. The card ", card["id"],
+                      "was used more than 3 times")
+                return []
             else:
+                card_counters[card["id"]] +=1
                 deck.append(copy.deepcopy(card))
                 deck_cost+=card["cost"]
 
@@ -553,6 +562,7 @@ def load_cards(sheet):
                 card["card_timing"] = int(cd["card_timing"])
                 card["card_count"] = int(cd["card_count"])
         card["cost"] = int(cd["cost"])
+        card["id"] = int(cd["id"])
         card["character_type"] = int(cd["character_type"])
         card["name"] = cd["name"]
         card["card_type"] = cd["card_type"]
@@ -1394,8 +1404,7 @@ def evaluate_combo_level_n(n, battling_player):
                 battling_player.player_combo_string = ""
                 data= create_combo_found_report(battling_player.id,combo_string,n,combo)
                 add_to_report(data)
-                print(battling_player.player_dna,"found a l evel",n, "combo: ", combo_string, ". adding boost to player")
-                print(combo)
+                print(battling_player.player_dna,"found a level",n, "combo: ", combo_string, ". adding boost to player")
                 if combo["target_type"] == "combo":
                     boost = Boost(combo)
                     data = create_boost_applied_report(battling_player.id,combo)
@@ -1785,8 +1794,8 @@ def check_for_pierce(attacking_player):
                 if boost.special_boost.special == "add pierce":
                     data = create_pierce_applied_report(attacking_player.id,True)
                     add_to_report(data)
-                    print(attacking_player.player_dna, " has pierce")
                     remove_boost_counter(attacking_player, boost.unique_id)
+                    print(attacking_player.player_dna, " has pierce")
                     return attacking_player, True
     return attacking_player, False
 
@@ -1867,7 +1876,7 @@ def evaluate_attack_boosts(final_damage, attacking_player, active_boosts):
                 for number in range(attack_boost.amount, attack_boost.extra+1):
                     boost_values.append(number)
 
-                final_boost_amount = random.choice(boost_values)
+                final_boost_amount=random.choice(boost_values)
                 final_damage += final_boost_amount
             else:
                 final_boost_amount = attack_boost.amount
@@ -1879,6 +1888,7 @@ def evaluate_attack_boosts(final_damage, attacking_player, active_boosts):
             print(attacking_player.player_dna, "attack boosted by +", attack_boost.amount, " new attack value is: ",
                   final_damage)
             attacking_player = remove_boost_counter(attacking_player, attack_boost.unique_id)
+            break
 
     # evaluate multiplayer bonus damage
     for attack_boost in active_boosts:
@@ -1900,9 +1910,7 @@ def evaluate_attack_boosts(final_damage, attacking_player, active_boosts):
 def deal_damage(attacking_player,final_damage, defending_player, is_piercing):
     # deal pierce damage (ignore armor)
     if is_piercing:
-        defending_player.player_health -= final_damage
-        print(defending_player.player_dna, "took", final_damage,
-              "pierce damage, his HP now is:", defending_player.player_health)
+        defending_player = apply_pierce_effect(attacking_player,defending_player,final_damage)
     else:
         # taking player shield into consideration
         if defending_player.player_shield > 0:
@@ -1938,6 +1946,24 @@ def deal_damage(attacking_player,final_damage, defending_player, is_piercing):
 
     return defending_player
 
+
+def apply_pierce_effect(attacking_player,defending_player,final_damage):
+    defending_player.player_health -= final_damage
+    if final_damage <= defending_player.player_shield:
+        damage_blocked = final_damage
+    else:
+        damage_blocked = copy.deepcopy(defending_player.player_shield)
+    defending_player.player_shield -= final_damage
+    if defending_player.player_shield < 0:
+        defending_player.player_shield = 0
+    data = create_damage_dealt_report(attacking_player.id,defending_player.id,damage_blocked,final_damage,
+                                      defending_player.player_health, defending_player.player_shield)
+    add_to_report(data)
+    print(defending_player.player_dna, "lost", damage_blocked, "shield")
+    print(defending_player.player_dna, "took", final_damage,
+          "pierce damage, his HP now is:", defending_player.player_health, "and shield:",defending_player.player_shield)
+
+    return defending_player
 
 def determine_winner(battling_player1, battling_player2):
     if battling_player1.player_health > battling_player2.player_health:
@@ -2020,11 +2046,11 @@ def get_deck(id):
 
 
 def simulate_battle(match_unique_id,player1_id,player2_id):
-    old_stdout = sys.stdout
-    log_report_identifier=match_unique_id+"_"+str(player1_id)+"_"+str(player2_id)+".log"
-    full_path = os.path.join(log_reports_folder_path, log_report_identifier)
-    log_file = open(full_path, "w")
-    sys.stdout = log_file
+    #old_stdout = sys.stdout
+    #log_report_identifier=match_unique_id+"_"+str(player1_id)+"_"+str(player2_id)+".log"
+    #full_path = os.path.join(log_reports_folder_path, log_report_identifier)
+    #log_file = open(full_path, "w")
+    #sys.stdout = log_file
 
     # TODO JUST FOR TESTING
     ether_card1=get_ether_card(player1_id)
@@ -2090,11 +2116,11 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
         series_report.clear()
         outfile.close()
 
-    sys.stdout = old_stdout
-    log_file.close()
+    #sys.stdout = old_stdout
+    #log_file.close()
     return last_report
 
 
-#for i in range (1):
-    #match_unique_id = str(uuid.uuid4())
-    #simulate_battle(match_unique_id,513 ,3272)
+for i in range (1):
+    match_unique_id = str(uuid.uuid4())
+    simulate_battle(match_unique_id,513 ,3272)
