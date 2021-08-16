@@ -109,6 +109,7 @@ def load_cards(sheet):
                 card["card_timing"] = int(cd["card_timing"])
                 card["card_count"] = int(cd["card_count"])
         card["cost"] = int(cd["cost"])
+        card["id"] = int(cd["id"])
         card["character_type"] = int(cd["character_type"])
         card["name"] = cd["name"]
         card["card_type"] = cd["card_type"]
@@ -126,6 +127,7 @@ character_type = 3
 
 deck_limit = 20
 
+card_counters = [0]*100
 
 
 def create_deck():
@@ -151,6 +153,9 @@ def try_to_add_card_to_deck(id,deck, deck_cost,combos):
         print("Invalid card in deck. The card character_type of:", card["character_type"],
               "does not match player character_type of", character_type)
         return deck,deck_cost,combos
+    elif card_counters[card["id"]]>=3:
+        print("You can only use a card a maximum amount of 3 times")
+        return deck, deck_cost, combos
     else:
         deck_cost += card["cost"]
     if deck_cost > 200:
@@ -163,9 +168,11 @@ def try_to_add_card_to_deck(id,deck, deck_cost,combos):
         deck_cost-=card["cost"]
         return deck,deck_cost,combos
 
+    card_counters[card["id"]] += 1
     deck.append({"id":id})
     combos+= card["combo_sign"]
     print("Card added successfully, your total deck cost is:", deck_cost, "cards used so far:", len(deck), "current combo sequence:", combos)
+    print("You used card with id", card["id"], "----",card_counters[card["id"]], "times")
     print("You can add a maximum of",deck_limit-len(deck), "more cards")
     print(json.dumps(deck))
     return deck,deck_cost,combos
