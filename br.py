@@ -1843,9 +1843,6 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
         final_damage = random.choice(damage_array)
         print("Damage randomed:" + str(final_damage))
     attack_damage=copy.deepcopy(final_damage)
-    if is_crit:
-        crit_damage = crit_damage_ranges.get(final_damage)
-        print(attacking_player.player_dna, "Hit a critical attack, adding bonus damage of +", crit_damage)
 
     data = create_attack_played_report(attacking_player.id, min_attack_damage, max_attack_damage, attack_damage,
                                        attacking_player_crit_ratio, is_crit,crit_damage, final_damage)
@@ -1854,17 +1851,22 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
     if len(active_boosts) > 0:
         final_damage, attacking_player = evaluate_attack_boosts(final_damage, attacking_player, active_boosts)
 
-    final_damage += crit_damage
+    if is_crit:
+        final_damage = add_crit_damage_to_final(attacking_player,final_damage)
     print(attacking_player.player_dna, "The final damage value is:", final_damage)
 
     defending_player = deal_damage(attacking_player,final_damage, defending_player, is_piercing)
 
-def add_crit_damage_to_final(final_damage):
+
+def add_crit_damage_to_final(attacking_player,final_damage):
     if final_damage>15:
+        crit_damage = 7
         final_damage+=7
     else:
-        test= crit_damage_ranges.get(final_damage)
-        final_damage += test
+        crit_damage = crit_damage_ranges.get(final_damage)
+        final_damage += crit_damage_ranges.get(final_damage)
+
+    print(attacking_player.player_dna, "Hit a critical attack, adding bonus damage of +", crit_damage)
     return final_damage
 
 def evaluate_attack_boosts(final_damage, attacking_player, active_boosts):
@@ -2124,4 +2126,4 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
 
 for i in range (1):
     match_unique_id = str(uuid.uuid4())
-    simulate_battle(match_unique_id,513 ,3272)
+    simulate_battle(match_unique_id,311 ,6575)
