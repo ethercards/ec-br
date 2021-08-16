@@ -1405,6 +1405,7 @@ def evaluate_combo_level_n(n, battling_player):
                 data= create_combo_found_report(battling_player.id,combo_string,n,combo)
                 add_to_report(data)
                 print(battling_player.player_dna,"found a level",n, "combo: ", combo_string, ". adding boost to player")
+                print(combo)
                 if combo["target_type"] == "combo":
                     boost = Boost(combo)
                     data = create_boost_applied_report(battling_player.id,combo)
