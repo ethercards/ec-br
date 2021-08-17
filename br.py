@@ -45,6 +45,7 @@ crit_boosted_keyword="crit_boosted"
 attack_played_keyword="attack_played"
 attack_boosted_keyword="attack_boosted"
 attack_applied_keyword="attack_applied"
+attack_evaded_keyword = "attack_evaded"
 end_of_game_report_keyword="end_of_game_report"
 end_of_series_report_keyword="end_of_series_report"
 
@@ -75,7 +76,9 @@ class Player:
             print("goccha")
         self.params["health"] = int(layers[("0" + dna[0:2])]["value"])
 
-        self.params["deck_limit"] = int(layers[("1" + dna[2:4])]["value"])
+        self.params["deck_limit"] = 20
+
+        self.params["evasion"] = int(layers[("1" + dna[2:4])]["value"])
 
         self.params["combo_group"] = int(layers[("2" + dna[4:6])]["value"])
 
@@ -161,6 +164,7 @@ class BattlingPlayerObject:
         self.player_combos = player.params["combos"]
         self.player_dna = player.params["dna"]
         self.player_max_health = player.params["health"]
+        self.evasion = player.params["evasion"]
         self.id=player.params["card_id"]
 
         # initializing changing components for player1
@@ -831,6 +835,14 @@ def create_attack_effect_activated_report(attacking_player_id, min_value, max_va
     return data
 
 
+def create_attack_evaded_report(defending_player_id,evaded_attack):
+    data ={
+        "defending_player_id":defending_player_id,
+        "evaded_attack":evaded_attack
+    }
+    return data
+
+
 def create_damage_dealt_report(attacking_player_id,defending_player_id, damage_blocked, damage_dealt,new_health, new_shield):
     data ={
         keyword : damage_dealt_keyword,
@@ -913,6 +925,7 @@ def create_beginning_of_round_report(round_counter,battling_player1,battling_pla
             "health": battling_player1.player_health,
             "active_boosts": len(battling_player1.active_boosts),
             "combo_effects": len(battling_player1.combo_effects),
+            "evasion":battling_player1.evasion,
             "debuffs": len(battling_player1.debuffs),
             "crit_chace": battling_player1.player_crit_chance,
             "deck_size": len(battling_player1.player_deck),
@@ -923,6 +936,7 @@ def create_beginning_of_round_report(round_counter,battling_player1,battling_pla
             "health": battling_player2.player_health,
             "active_boosts": len(battling_player2.active_boosts),
             "combo_effects": len(battling_player2.combo_effects),
+            "evasion": battling_player2.evasion,
             "debuffs": len(battling_player2.debuffs),
             "crit_chace": battling_player2.player_crit_chance,
             "deck_size": len(battling_player2.player_deck),
@@ -1855,7 +1869,22 @@ def evaluate_attack_card(attacking_player, defending_player, card_to_play, attac
         final_damage = add_crit_damage_to_final(attacking_player,final_damage)
     print(attacking_player.player_dna, "The final damage value is:", final_damage)
 
-    defending_player = deal_damage(attacking_player,final_damage, defending_player, is_piercing)
+    attack_evaded = apply_evasion(defending_player)
+
+    if attack_evaded:
+        data = create_attack_evaded_report(defending_player.id, True)
+        add_to_report(data)
+        print (defending_player.player_dna, "evaded the attack")
+    else:
+        defending_player = deal_damage(attacking_player,final_damage, defending_player, is_piercing)
+
+
+def apply_evasion(defending_player):
+    random_array = [0] * 100
+    for i in range(defending_player.evasion):
+        random_array[i] = 1
+    is_evaded = random.choice(random_array)
+    return is_evaded
 
 
 def add_crit_damage_to_final(attacking_player,final_damage):
@@ -1866,8 +1895,9 @@ def add_crit_damage_to_final(attacking_player,final_damage):
         crit_damage = crit_damage_ranges.get(final_damage)
         final_damage += crit_damage_ranges.get(final_damage)
 
-    print(attacking_player.player_dna, "Hit a critical attack, adding bonus damage of +", crit_damage)
+    print(attacking_player.player_dna, "The attack looks very strong, adding bonus critical damage of +", crit_damage)
     return final_damage
+
 
 def evaluate_attack_boosts(final_damage, attacking_player, active_boosts):
     # evaluate flat bonus damage
@@ -2005,6 +2035,7 @@ def display_player_info(player):
         print("-------------------------------------------------")
         print("Player id:",player.params["card_id"])
         print("Deck limit:",player.params["deck_limit"])
+        print("Evasion:",player.params["evasion"])
         print("Deck max cost: 200")
         print("Character type:", player.params["character_type"])
         print("Combo group:",player.params["combo_group"])
