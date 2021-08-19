@@ -1661,6 +1661,17 @@ def evaluate_life_boosts(final_value, active_player, active_life_boosts):
     # evaluate the life boosts that add flat value
     starting_value=copy.deepcopy(final_value)
     for life_boost in active_life_boosts:
+        if life_boost.action_type == "x":
+            final_value = final_value * life_boost.amount
+            data = create_defense_boosted_report(active_player.id, "life", life_boost.amount, "x", starting_value,
+                                                 final_value)
+            add_to_report(data)
+            active_player = remove_boost_counter(active_player, life_boost.unique_id)
+            print(active_player.player_dna,"base life of",starting_value,"boosted by x", life_boost.amount,
+                  " new live value is: ", final_value)
+            break
+
+    for life_boost in active_life_boosts:
         if life_boost.action_type == "+":
             if life_boost.extra is not None and life_boost.amount != life_boost.extra:
                 boost_values = []
@@ -1679,26 +1690,24 @@ def evaluate_life_boosts(final_value, active_player, active_life_boosts):
             print(active_player.player_dna, "life boosted by +", life_boost.amount, " new final life value is: ",
                   final_value)
             active_player = remove_boost_counter(active_player, life_boost.unique_id)
-            break
-    # evaluate the life boosts that multiply the value
-    for life_boost in active_life_boosts:
-        if life_boost.action_type == "x":
-            final_value = final_value * life_boost.amount
-            data = create_defense_boosted_report(active_player.id, "life", life_boost.amount, "x", starting_value,
-                                                 final_value)
-            add_to_report(data)
-            active_player = remove_boost_counter(active_player, life_boost.unique_id)
-            print("Life boosted by x", life_boost.amount, " new final_life_value is: ", final_value)
-            return final_value, active_player
 
     return final_value, active_player
 
 
 def evaluate_shield_boosts(final_value, active_player, active_shield_boosts):
-    # evaluate the shield boosts that add flat value
-    # The reason why this is a little different than the life boosts,
-    # is because there are combos that create boosts with non- flat value
-    starting_value= copy.deepcopy(final_value)
+    starting_value = copy.deepcopy(final_value)
+
+    for shield_boost in active_shield_boosts:
+        if shield_boost.action_type == "x":
+            final_value = final_value * shield_boost.amount
+            data = create_defense_boosted_report(active_player.id, "shield", shield_boost.amount, "x", starting_value,
+                                                 final_value)
+            add_to_report(data)
+            print(active_player.player_dna, "base shield of", starting_value, "boosted by x", shield_boost.amount,
+                  " new shield value is: ", final_value)
+            active_player = remove_boost_counter(active_player, shield_boost.unique_id)
+            break
+
     for shield_boost in active_shield_boosts:
         if shield_boost.action_type == "+":
             if shield_boost.extra is not None and shield_boost.amount != shield_boost.extra:
@@ -1718,17 +1727,6 @@ def evaluate_shield_boosts(final_value, active_player, active_shield_boosts):
             print(active_player.player_dna, "shield boosted by +", shield_boost.amount, " new final_shield_value is: ",
                   final_value)
             active_player = remove_boost_counter(active_player, shield_boost.unique_id)
-            break
-    # evaluate the shield boosts that multiply the value
-    for shield_boost in active_shield_boosts:
-        if shield_boost.action_type == "x":
-            final_value = final_value * shield_boost.amount
-            data = create_defense_boosted_report(active_player.id, "shield", shield_boost.amount, "x", starting_value,
-                                                 final_value)
-            add_to_report(data)
-            print("Shield boosted by x", shield_boost.amount, " new final_shield_value is: ", final_value)
-            active_player = remove_boost_counter(active_player, shield_boost.unique_id)
-            return final_value, active_player
 
     return final_value, active_player
 
@@ -1901,7 +1899,21 @@ def add_crit_damage_to_final(attacking_player,final_damage):
 
 def evaluate_attack_boosts(final_damage, attacking_player, active_boosts):
     # evaluate flat bonus damage
-    starting_value=copy.deepcopy(final_damage)
+    starting_value = copy.deepcopy(final_damage)
+    for attack_boost in active_boosts:
+        if attack_boost.action_type == "x":
+            final_damage *= attack_boost.amount
+
+            data = create_attack_boosted_report(attacking_player.id, "x", attack_boost.amount, starting_value,
+                                                final_damage)
+            add_to_report(data)
+
+            print(attacking_player.player_dna, "boosted base attack of", starting_value, "by x", attack_boost.amount,
+                  " new attack value is: ", final_damage)
+            attacking_player = remove_boost_counter(attacking_player, attack_boost.unique_id)
+            break
+
+
     for attack_boost in active_boosts:
         if attack_boost.action_type == "+":
             if attack_boost.extra is not None and attack_boost.amount != attack_boost.extra:
@@ -1921,21 +1933,6 @@ def evaluate_attack_boosts(final_damage, attacking_player, active_boosts):
             print(attacking_player.player_dna, "attack boosted by +", attack_boost.amount, " new attack value is: ",
                   final_damage)
             attacking_player = remove_boost_counter(attacking_player, attack_boost.unique_id)
-            break
-
-    # evaluate multiplayer bonus damage
-    for attack_boost in active_boosts:
-        if attack_boost.action_type == "x":
-            final_damage *= attack_boost.amount
-
-            data = create_attack_boosted_report(attacking_player.id, "x", attack_boost.amount, starting_value,
-                                                final_damage)
-            add_to_report(data)
-
-            print(attacking_player.player_dna, "boosted base attack of", starting_value, "by x", attack_boost.amount,
-                  " new attack_final_value is: ", final_damage)
-            attacking_player = remove_boost_counter(attacking_player, attack_boost.unique_id)
-            return final_damage, attacking_player
 
     return final_damage, attacking_player
 
@@ -2157,4 +2154,4 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
 
 for i in range (1):
     match_unique_id = str(uuid.uuid4())
-    simulate_battle(match_unique_id,311 ,6575)
+    simulate_battle(match_unique_id,3272 ,4821)

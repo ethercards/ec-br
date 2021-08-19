@@ -123,7 +123,7 @@ workbook = load_workbook(filename=rules_filename)
 
 playing_cards = load_cards(workbook["cards"])
 
-character_type = 3
+character_type = 0
 
 deck_limit = 20
 
