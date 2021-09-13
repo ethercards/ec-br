@@ -1429,19 +1429,21 @@ def evaluate_combo_level_n(n, battling_player):
                     if combo["target_type"] == "player":
                         combo["card_timing"] = 0
                         combo["card_count"] = 1
+                        combo_instance = copy.deepcopy(combo)
                         if len(check_for_combo_boosts(battling_player))>0:
-                            combo,battling_player = boost_combo(combo,battling_player)
-                        combo_effect = ComboEffect(combo)
+                            combo_instance,battling_player = boost_combo(combo_instance,battling_player)
+                        combo_effect = ComboEffect(combo_instance)
                         battling_player.combo_effects.append(combo_effect)
-                        data=create_effect_applied_report(battling_player.id,combo)
+                        data=create_effect_applied_report(battling_player.id,combo_instance)
                         add_to_report(data)
                     if combo["target_type"] == "card":
+                        combo_instance = copy.deepcopy(combo)
                         if len(check_for_combo_boosts(battling_player))>0:
-                            combo,battling_player = boost_combo(combo,battling_player)
+                            combo_instance,battling_player = boost_combo(combo_instance,battling_player)
                         # TODO the reason why we are not boosting these things, because they would be way to op, I have to talk about this with someone
-                        data = create_boost_applied_report(battling_player.id, combo)
+                        data = create_boost_applied_report(battling_player.id, combo_instance)
                         add_to_report(data)
-                        card_boost= Boost(combo)
+                        card_boost= Boost(combo_instance)
                         battling_player.active_boosts.append(card_boost)
     return battling_player
 
@@ -2077,11 +2079,11 @@ def get_deck(id):
 
 
 def simulate_battle(match_unique_id,player1_id,player2_id):
-    #old_stdout = sys.stdout
-    #log_report_identifier=match_unique_id+"_"+str(player1_id)+"_"+str(player2_id)+".log"
-    #full_path = os.path.join(log_reports_folder_path, log_report_identifier)
-    #log_file = open(full_path, "w")
-    #sys.stdout = log_file
+    old_stdout = sys.stdout
+    log_report_identifier=match_unique_id+"_"+str(player1_id)+"_"+str(player2_id)+".log"
+    full_path = os.path.join(log_reports_folder_path, log_report_identifier)
+    log_file = open(full_path, "w")
+    sys.stdout = log_file
 
     # TODO JUST FOR TESTING
     ether_card1=get_ether_card(player1_id)
@@ -2147,11 +2149,11 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
         series_report.clear()
         outfile.close()
 
-    #sys.stdout = old_stdout
-    #log_file.close()
+    sys.stdout = old_stdout
+    log_file.close()
     return last_report
 
 
 for i in range (1):
     match_unique_id = str(uuid.uuid4())
-    simulate_battle(match_unique_id,3272 ,4821)
+    simulate_battle(match_unique_id,2468 ,4764)
