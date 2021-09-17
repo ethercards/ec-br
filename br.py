@@ -169,6 +169,8 @@ class BattlingPlayerObject:
 
         # initializing changing components for player1
         self.player_deck = player.params["deck"]
+        self.deck_cost = player.params["deck_cost"]
+        self.deck_size= len(player.params["deck"])
         self.player_health = player.params["health"]
         self.player_shield = 0
         self.player_combo_string = ""
@@ -2004,13 +2006,18 @@ def determine_winner(battling_player1, battling_player2):
 
         return battling_player2,battling_player1
     elif battling_player1.player_shield > battling_player2.player_shield:
-
         return battling_player1,battling_player2
     elif battling_player1.player_shield < battling_player2.player_shield:
-
         return battling_player2,battling_player1
-    elif battling_player1.id>battling_player2.id:
-
+    elif battling_player1.deck_cost < battling_player2.deck_cost:
+        return battling_player1,battling_player2
+    elif battling_player1.deck_cost > battling_player2.deck_cost:
+        return battling_player2,battling_player1
+    elif battling_player1.deck_size < battling_player2.deck_size:
+        return battling_player1,battling_player2
+    elif battling_player1.deck_size > battling_player2.deck_size:
+        return battling_player2,battling_player1
+    elif battling_player1.id<battling_player2.id:
         return battling_player1,battling_player2
     else:
 
@@ -2156,4 +2163,4 @@ def simulate_battle(match_unique_id,player1_id,player2_id):
 
 for i in range (1):
     match_unique_id = str(uuid.uuid4())
-    simulate_battle(match_unique_id,2468 ,4764)
+    simulate_battle(match_unique_id,2468 ,3428)
